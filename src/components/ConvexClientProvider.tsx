@@ -1,7 +1,7 @@
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Clerk } from "@clerk/clerk-js";
 
 export const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
@@ -48,18 +48,25 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
     const tokenCache = isExtension ? {
         getToken: (key: string) => {
             return new Promise<string | null>((resolve) => {
+                console.log("[TokenCache] getToken called for key:", key);
                 chrome.storage.local.get([key, 'clerk-latest-token'], (result) => {
-                    const token = (result[key] as string) || (result['clerk-latest-token'] as string);
-                    if (token && !result[key]) {
-                        // Found in fallback, migrate to specific key
+                    const primary = result[key] as string;
+                    const fallback = result['clerk-latest-token'] as string;
+                    console.log("[TokenCache] Storage result:", { keyFound: !!primary, fallbackFound: !!fallback });
+
+                    const token = primary || fallback;
+                    if (token && !primary) {
+                        console.log("[TokenCache] Using fallback token and migrating to key:", key);
                         chrome.storage.local.set({ [key]: token });
                     }
+                    console.log("[TokenCache] Resolving with token length:", token ? token.length : 0);
                     resolve(token || null);
                 });
             });
         },
         saveToken: (key: string, token: string) => {
             return new Promise<void>((resolve) => {
+                console.log("[TokenCache] saveToken called for key:", key);
                 chrome.storage.local.set({ [key]: token }, () => {
                     resolve();
                 });
@@ -80,6 +87,21 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
             hasChromeStorage: !!chrome?.storage?.local
         });
     }
+
+    useEffect(() => {
+        if (!isExtension || typeof chrome === 'undefined' || !chrome.storage) return;
+
+        const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+            if (changes['clerk-latest-token']) {
+                console.log("[ConvexClientProvider] Auth token changed. Reloading extension...");
+                window.location.reload();
+            }
+        };
+
+        chrome.storage.onChanged.addListener(handleStorageChange);
+        return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    }, [isExtension]);
+
 
     const routerReplace = (to: string) => {
         if (isExtension) {

@@ -49,6 +49,11 @@ export default function ExtensionAuthCallback() {
 
                 setStatus('success');
 
+                // Redirect to dashboard after 2 seconds
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 2000);
+
             } catch (err: any) {
                 console.error("Failed to get token", err);
                 setStatus('error');
@@ -78,18 +83,11 @@ export default function ExtensionAuthCallback() {
                         </div>
                         <h2 className="text-2xl font-bold text-white">Authentication Successful!</h2>
                         <p className="text-slate-300">
-                            You have successfully signed in to the Focus Timer extension.
+                            Redirecting to your dashboard...
                         </p>
-                        <p className="text-sm text-slate-500 mt-2">
-                            You can now close this tab and return to the extension.
-                        </p>
-                        <Button
-                            variant="outline"
-                            className="mt-4 border-slate-700 hover:bg-slate-800 text-slate-300"
-                            onClick={() => window.close()}
-                        >
-                            Close Tab
-                        </Button>
+                        <div className="w-full bg-slate-800 h-1 mt-4 rounded-full overflow-hidden">
+                            <div className="bg-blue-500 h-full w-full animate-progress-origin-left" style={{ animation: 'progress 2s linear' }} />
+                        </div>
                     </div>
                 )}
 
