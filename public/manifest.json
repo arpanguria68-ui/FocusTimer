@@ -63,6 +63,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://grand-marlin-966.convex.cloud https://valued-liger-15.clerk.accounts.dev https://clerk.com https://*.clerk.accounts.dev wss://grand-marlin-966.convex.cloud; frame-src 'self' https://valued-liger-15.clerk.accounts.dev https://clerk.com https://*.clerk.accounts.dev; worker-src 'self';"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://grand-marlin-966.convex.cloud https://valued-liger-15.clerk.accounts.dev https://clerk.com https://*.clerk.accounts.dev wss://grand-marlin-966.convex.cloud https://clerk-telemetry.com; frame-src 'self' https://valued-liger-15.clerk.accounts.dev https://clerk.com https://*.clerk.accounts.dev; worker-src 'self';"
   }
 }
