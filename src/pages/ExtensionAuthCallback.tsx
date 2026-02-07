@@ -25,8 +25,20 @@ export default function ExtensionAuthCallback() {
             }
 
             try {
-                // Get the Clerk session token (long-lived if possible, or standard)
-                const token = await getToken();
+                // Get the Clerk session token. 
+                // CRITICAL: We prioritize the persistent Token from localStorage ('clerk-db-jwt')
+                // because getToken() returns a short-lived access token that might not bootstrap
+                // the extension's Clerk client state correctly.
+                let token = localStorage.getItem('clerk-db-jwt'); // Standard Clerk key
+                let source = 'localStorage';
+
+                if (!token) {
+                    console.log("[ExtensionAuth] No clerk-db-jwt found, falling back to getToken()");
+                    token = await getToken();
+                    source = 'api';
+                }
+
+                console.log(`[ExtensionAuth] Got token from ${source}, sending to extension...`);
 
                 if (!token) {
                     throw new Error("No token returned");

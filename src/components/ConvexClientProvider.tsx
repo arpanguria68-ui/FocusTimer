@@ -91,10 +91,28 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (!isExtension || typeof chrome === 'undefined' || !chrome.storage) return;
 
+        const checkAndSyncToken = () => {
+            chrome.storage.local.get(['clerk-latest-token'], (result) => {
+                const token = result['clerk-latest-token'] as string;
+                if (token) {
+                    const currentLocal = localStorage.getItem('clerk-db-jwt');
+                    if (currentLocal !== token) {
+                        console.log("[ConvexClientProvider] Syncing token to localStorage and reloading...");
+                        localStorage.setItem('clerk-db-jwt', token);
+                        window.location.reload();
+                    }
+                }
+            });
+        };
+
+        // Check on mount
+        checkAndSyncToken();
+
+        // Listen for changes
         const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
             if (changes['clerk-latest-token']) {
-                console.log("[ConvexClientProvider] Auth token changed. Reloading extension...");
-                window.location.reload();
+                console.log("[ConvexClientProvider] Auth token changed in storage.");
+                checkAndSyncToken();
             }
         };
 
