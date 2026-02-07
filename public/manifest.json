@@ -9,7 +9,25 @@
     "notifications",
     "activeTab",
     "windows",
-    "identity"
+    "identity",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://*.vercel.app/*",
+    "https://*.clerk.accounts.dev/*",
+    "https://clerk.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.vercel.app/*",
+        "*://localhost/*"
+      ],
+      "js": [
+        "content-script-auth.js"
+      ],
+      "run_at": "document_start"
+    }
   ],
   "background": {
     "service_worker": "background.js"

@@ -454,38 +454,43 @@ export function useQuotesState() {
     const state = quotesState;
     const all = allQuotes(); // all is guarded to return [] at worst
 
+    // Use merged playlists (remote when logged in, local otherwise)
+    const playlistsToUse: any[] = user ? remotePlaylists : (state.playlists || []);
+
     console.log('[getNextQuote] Called with state:', {
       activePlaylistId: state.activePlaylistId,
-      playlistCount: (state.playlists || []).length,
+      playlistCount: playlistsToUse.length,
       totalQuotes: all.length,
-      playlists: (state.playlists || []).map(p => ({
+      isLoggedIn: !!user,
+      playlists: playlistsToUse.map((p: any) => ({
         id: p.id,
         name: p.name,
-        quoteCount: p.quoteIds.length
+        quoteCount: (p.quoteIds || p.quote_ids || []).length
       }))
     });
 
     // 1. Check if a playlist is active
     if (state.activePlaylistId) {
-      const playlist = (state.playlists || []).find(p => p.id === state.activePlaylistId);
+      const playlist = playlistsToUse.find((p: any) => p.id === state.activePlaylistId);
       console.log('[getNextQuote] Active playlist found:', playlist);
 
-      // Safe check for quoteIds existence and length
-      if (playlist && Array.isArray(playlist.quoteIds) && playlist.quoteIds.length > 0) {
+      // Safe check for quoteIds existence and length (handle both quoteIds and quote_ids)
+      const playlistQuoteIds = playlist?.quoteIds || playlist?.quote_ids || [];
+      if (playlist && Array.isArray(playlistQuoteIds) && playlistQuoteIds.length > 0) {
         // Get current index for this playlist (default 0)
         const progress = state.playlistProgress || {};
         const currentIndex = progress[playlist.id] || 0;
 
-        console.log('[getNextQuote] Playlist progress:', { playlistId: playlist.id, currentIndex, totalInPlaylist: playlist.quoteIds.length });
+        console.log('[getNextQuote] Playlist progress:', { playlistId: playlist.id, currentIndex, totalInPlaylist: playlistQuoteIds.length });
 
         // Get the quote ID at this index
-        const quoteId = playlist.quoteIds[currentIndex % playlist.quoteIds.length];
+        const quoteId = playlistQuoteIds[currentIndex % playlistQuoteIds.length];
         const quote = all.find(q => q.id === quoteId);
 
         console.log('[getNextQuote] Looking for quoteId:', quoteId, 'Found:', !!quote);
 
         // Advance the index for next time (strictly sequential)
-        const nextIndex = (currentIndex + 1) % playlist.quoteIds.length;
+        const nextIndex = (currentIndex + 1) % playlistQuoteIds.length;
 
         // Update state in background
         setQuotesState(prev => ({
@@ -514,7 +519,7 @@ export function useQuotesState() {
     const randomIndex = Math.floor(Math.random() * all.length);
     console.log('[getNextQuote] Returning random quote at index:', randomIndex);
     return { quote: all[randomIndex], source: 'random' as const };
-  }, [quotesState, allQuotes, setQuotesState])
+  }, [quotesState, allQuotes, setQuotesState, user, remotePlaylists])
 
   // --- SELF-HEALING CACHE EFFECT ---
   // If we have an active playlist but NO cached quotes (legacy state), hydrate the cache immediately.

@@ -76,7 +76,7 @@ export function ExternalSmilePopup({
   onSkipBreak
 }: ExternalSmilePopupProps) {
 
-  const { getNextQuote, isLoading: quotesLoading, allQuotes } = useQuotesState();
+  const { getNextQuote, isLoading: quotesLoading, allQuotes, playlists, activePlaylistId } = useQuotesState();
   const { user, session } = useAuth ? useAuth() : { user: null, session: null }; // Safe access just in case
 
   useEffect(() => {
@@ -85,9 +85,12 @@ export function ExternalSmilePopup({
       userId: user?.id,
       quotesLoading,
       quotesCount: allQuotes.length,
-      storageKey: user ? `quotes-state_${user.id}` : 'quotes-state_anonymous'
+      storageKey: user ? `quotes-state_${user.id}` : 'quotes-state_anonymous',
+      activePlaylistId,
+      playlistCount: playlists?.length || 0,
+      playlists: playlists?.map((p: any) => ({ id: p.id, name: p.name, quoteCount: (p.quoteIds || p.quote_ids || []).length })) || []
     });
-  }, [user, quotesLoading, allQuotes.length]);
+  }, [user, quotesLoading, allQuotes.length, playlists, activePlaylistId]);
 
   // Handle audio playback
   useEffect(() => {

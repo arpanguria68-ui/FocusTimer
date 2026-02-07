@@ -44,6 +44,43 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Token Cache for Extension
+    const tokenCache = isExtension ? {
+        getToken: (key: string) => {
+            return new Promise<string | null>((resolve) => {
+                chrome.storage.local.get([key, 'clerk-latest-token'], (result) => {
+                    const token = (result[key] as string) || (result['clerk-latest-token'] as string);
+                    if (token && !result[key]) {
+                        // Found in fallback, migrate to specific key
+                        chrome.storage.local.set({ [key]: token });
+                    }
+                    resolve(token || null);
+                });
+            });
+        },
+        saveToken: (key: string, token: string) => {
+            return new Promise<void>((resolve) => {
+                chrome.storage.local.set({ [key]: token }, () => {
+                    resolve();
+                });
+            });
+        },
+        clearToken: (key: string) => {
+            return new Promise<void>((resolve) => {
+                chrome.storage.local.remove([key, 'clerk-latest-token'], () => {
+                    resolve();
+                });
+            });
+        },
+    } : undefined;
+
+    if (isExtension) {
+        console.log("[ConvexClientProvider] Extension context detected.", {
+            syncHost: import.meta.env.VITE_CLERK_SYNC_HOST,
+            hasChromeStorage: !!chrome?.storage?.local
+        });
+    }
+
     const routerReplace = (to: string) => {
         if (isExtension) {
             let path = to;
@@ -65,6 +102,10 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
             Clerk={clerk}
             routerPush={routerPush}
             routerReplace={routerReplace}
+            // @ts-ignore
+            syncHost={import.meta.env.VITE_CLERK_SYNC_HOST}
+            // @ts-ignore
+            tokenCache={tokenCache}
         >
             <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
                 {children}

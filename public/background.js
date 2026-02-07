@@ -122,5 +122,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
       });
       return true;
+
+    case 'CLERK_AUTH_TOKEN_RECEIVED':
+      // Save token from web app handshake
+      console.log('[Background] Received Clerk Token via handshake');
+      if (message.token) {
+        chrome.storage.local.set({
+          'clerk-latest-token': message.token,
+          'clerk-user-data': message.user
+        }, () => {
+          console.log('[Background] Token saved to local storage "clerk-latest-token"');
+          sendResponse({ success: true });
+        });
+      }
+      return true;
   }
 });

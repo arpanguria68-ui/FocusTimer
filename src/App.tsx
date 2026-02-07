@@ -18,6 +18,7 @@ const ChromeExtensionMain = React.lazy(() => import("./pages/ChromeExtensionMain
 const DashboardPage = React.lazy(() => import("./pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
 const AuthenticatedDashboard = React.lazy(() => import("./components/AuthenticatedDashboard").then(m => ({ default: m.AuthenticatedDashboard })));
 const ExternalSmilePopupPage = React.lazy(() => import("./pages/ExternalSmilePopupPage").then(m => ({ default: m.ExternalSmilePopupPage })));
+const ExtensionAuthCallback = React.lazy(() => import("./pages/ExtensionAuthCallback"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -102,6 +103,7 @@ const App = () => {
                           <Route path="/preview" element={<PreviewPage />} />
 
                           {/* Auth & Utility Routes */}
+                          <Route path="/extension-auth" element={<ExtensionAuthCallback />} />
                           <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
 
                           {/* 404 Catch-all - Must be last */}

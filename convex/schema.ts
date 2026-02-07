@@ -195,6 +195,7 @@ export default defineSchema({
         weekly_focus_goal: v.optional(v.number()),
         monthly_focus_goal: v.optional(v.number()),
         created_at: v.optional(v.string()),
+        updated_at: v.optional(v.string()),
     }).index("by_user", ["user_id"]),
 
     // Playlists: User created collections of quotes
