@@ -7,16 +7,16 @@ import { UserProfile } from './UserProfile';
 import { Settings } from './Settings';
 import { DashboardAnalyticsGate, DashboardAIGate, DashboardAdvancedGate } from './DashboardFeatureGate';
 import { useAuth } from '@/hooks/useAuth';
-import { useSessions } from '@/hooks/useSupabaseQueries';
+import { useSessions } from '@/hooks/useConvexQueries';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Timer, 
-  Quote, 
-  BarChart3, 
-  Bot, 
-  User, 
+import {
+  Timer,
+  Quote,
+  BarChart3,
+  Bot,
+  User,
   Settings as SettingsIcon,
   Menu,
   X,
@@ -30,7 +30,7 @@ interface DashboardProps {
 export function Dashboard({ className }: DashboardProps) {
   const [activeTab, setActiveTab] = useState('timer');
   const [sidebarOpen, setSidebarOpen] = useState(true); // Default to open for better UX
-  
+
   // Get user data and session statistics
   const { user, signOut } = useAuth();
   const { data: sessions = [] } = useSessions(200);
@@ -40,7 +40,7 @@ export function Dashboard({ className }: DashboardProps) {
     const completedSessions = sessions.filter(s => s.completed && s.session_type === 'focus').length;
     const level = Math.floor(Math.sqrt(completedSessions / 10)) + 1; // Level based on completed sessions
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Focus Master';
-    
+
     return {
       name: userName,
       level,
@@ -53,16 +53,22 @@ export function Dashboard({ className }: DashboardProps) {
   const tabs = [
     { id: 'timer', label: 'Focus Timer', icon: Timer, component: FocusTimer },
     { id: 'quotes', label: 'Inspiration', icon: Quote, component: EnhancedQuotesDashboard },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, component: () => (
-      <DashboardAnalyticsGate><SessionAnalytics /></DashboardAnalyticsGate>
-    )},
-    { id: 'ai', label: 'AI Assistant', icon: Bot, component: () => (
-      <DashboardAIGate><AiAssistant /></DashboardAIGate>
-    )},
+    {
+      id: 'analytics', label: 'Analytics', icon: BarChart3, component: () => (
+        <DashboardAnalyticsGate><SessionAnalytics /></DashboardAnalyticsGate>
+      )
+    },
+    {
+      id: 'ai', label: 'AI Assistant', icon: Bot, component: () => (
+        <DashboardAIGate><AiAssistant /></DashboardAIGate>
+      )
+    },
     { id: 'profile', label: 'Profile', icon: User, component: UserProfile },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon, component: () => (
-      <DashboardAdvancedGate><Settings /></DashboardAdvancedGate>
-    )},
+    {
+      id: 'settings', label: 'Settings', icon: SettingsIcon, component: () => (
+        <DashboardAdvancedGate><Settings /></DashboardAdvancedGate>
+      )
+    },
   ];
 
   const activeTabConfig = tabs.find(tab => tab.id === activeTab);
@@ -121,6 +127,22 @@ export function Dashboard({ className }: DashboardProps) {
               })}
             </nav>
 
+            {/* Extension Download CTA */}
+            <div className="px-4 py-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start text-xs border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all group"
+                onClick={() => window.open('https://chrome.google.com/webstore/detail/your-extension-id', '_blank')}
+              >
+                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 group-hover:scale-110 transition-transform">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" />
+                  </svg>
+                </div>
+                Get Extension
+              </Button>
+            </div>
+
             {/* User Info */}
             <div className="mt-auto pt-4 border-t border-border/50">
               <div className="flex items-center gap-3 p-2">
@@ -132,7 +154,7 @@ export function Dashboard({ className }: DashboardProps) {
                     {user ? userStats.name : 'Guest User'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {user 
+                    {user
                       ? `Level ${userStats.level} • ${userStats.sessions} sessions`
                       : 'Login to track progress'
                     }
@@ -156,7 +178,7 @@ export function Dashboard({ className }: DashboardProps) {
 
         {/* Mobile overlay */}
         {sidebarOpen && (
-          <div 
+          <div
             className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
             onClick={() => setSidebarOpen(false)}
           />

@@ -1,0 +1,103 @@
+# Terms and Conditions
+
+*Last updated: [Insert Date]*
+
+These Terms and Conditions (“Terms”) govern your use of the [Web Extension Name] (“Extension”, “we”, “our”, or “us”). By installing or using this Extension, you (“User”, “you”) agree to these Terms. If you do not agree, do not install or use the Extension.
+
+---
+
+## 1. End User License Agreement (EULA)
+
+1.1 **License Grant**
+We grant you a limited, non-exclusive, non-transferable, revocable license to use the Extension for personal or business use in accordance with these Terms.
+
+1.2 **Restrictions**
+You may not:
+
+* Modify, reverse-engineer, or decompile the Extension.
+* Use the Extension for unlawful purposes or in violation of applicable laws.
+* Resell, sublicense, or distribute the Extension without written consent.
+
+1.3 **Termination**
+We may suspend or terminate your access if you violate these Terms. Upon termination, you must uninstall and cease use of the Extension.
+
+---
+
+## 2. Privacy & GDPR Compliance
+
+2.1 **Data Collection**
+
+* The Extension may collect minimal user data necessary to provide functionality (e.g., preferences, settings, account details).
+* We do not sell or rent personal data to third parties.
+
+2.2 **Legal Basis**
+Under GDPR, personal data is processed on the basis of:
+
+* **Consent** (when you explicitly allow collection, e.g., enabling features),
+* **Legitimate Interest** (e.g., performance optimization),
+* **Legal Obligation** (when required by law).
+
+2.3 **User Rights (GDPR)**
+You have the right to:
+
+* Access, rectify, or delete your personal data.
+* Withdraw consent at any time.
+* Request a copy of the data we hold about you.
+* Lodge a complaint with a supervisory authority.
+
+Requests may be made by contacting us at [Insert Contact Email].
+
+2.4 **Data Storage & Security**
+
+* Data may be stored in secure servers located in the EU or other compliant regions.
+* Reasonable technical and organizational measures are implemented to protect against unauthorized access or breaches.
+
+---
+
+## 3. Intellectual Property
+
+The Extension and all associated content (code, design, branding) remain our intellectual property. Unauthorized use may result in legal action.
+
+---
+
+## 4. Disclaimer of Warranties
+
+The Extension is provided “as is” and “as available” without warranties of any kind, express or implied. We do not guarantee uninterrupted functionality or that the Extension will be error-free.
+
+---
+
+## 5. Limitation of Liability
+
+To the maximum extent permitted by law, we are not liable for any damages, including loss of data, revenue, or profits, arising from the use or inability to use the Extension.
+
+---
+
+## 6. Third-Party Services
+
+The Extension may integrate with third-party services (e.g., authentication providers, analytics). We are not responsible for the policies or practices of these services.
+
+---
+
+## 7. Updates & Modifications
+
+We reserve the right to modify or update the Extension or these Terms at any time. Continued use constitutes acceptance of updated Terms.
+
+---
+
+## 8. Governing Law & Jurisdiction
+
+These Terms shall be governed by the laws of [Insert Jurisdiction]. Any disputes shall be resolved in the courts of [Insert Jurisdiction].
+
+---
+
+## 9. Contact Information
+
+For questions, requests, or complaints regarding these Terms or GDPR compliance, contact:
+
+**Email:** [Insert Contact Email]
+**Company/Developer Name:** [Insert Entity]
+**Address:** [Insert Address]
+
+---
+
+*By using the Extension, you acknowledge that you have read, understood, and agree to be bound by these Terms.*

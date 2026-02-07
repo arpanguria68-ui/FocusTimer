@@ -48,7 +48,7 @@ export function AiQuoteGenerator({ onGenerateQuote }: AiQuoteGeneratorProps) {
 
     } catch (err) {
       console.error('Error generating quote:', err);
-      setError('Failed to generate quote. Please check your API key and prompt.');
+      setError(`Failed to generate quote: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

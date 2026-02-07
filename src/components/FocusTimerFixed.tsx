@@ -11,7 +11,7 @@ import SmilePopup from './SmilePopup';
 import { useToast } from '@/hooks/use-toast';
 import { useSmilePopupSettings } from '@/hooks/useChromeStorage';
 import { useTimerState } from '@/hooks/useTimerState';
-import { useUserSettings } from '@/hooks/useSupabaseQueries';
+import { useUserSettings } from '@/hooks/useConvexQueries';
 import { useAuth } from '@/hooks/useAuth';
 
 export type TimerMode = 'focus' | 'short_break' | 'long_break';
@@ -25,13 +25,13 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
   const { user } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
   const [showSmilePopup, setShowSmilePopup] = useState(false);
-  
+
   // Get user settings for timer durations
   const { data: userSettings } = useUserSettings();
-  
+
   // Get smile popup settings from Chrome storage
   const { value: smilePopupSettings } = useSmilePopupSettings();
-  
+
   // Use SaaS-grade timer state management
   const {
     currentTime,
@@ -55,7 +55,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
     longBreakTime: (userSettings?.long_break_duration || 15) * 60,
     sessionsUntilLongBreak: userSettings?.sessions_until_long_break || 4
   });
-  
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -74,8 +74,8 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
   const getModeVariant = (mode: TimerMode) => {
     switch (mode) {
       case 'focus': return 'timer';
-      case 'short_break': 
-      case 'long_break': 
+      case 'short_break':
+      case 'long_break':
         return 'break';
       default: return 'timer';
     }
@@ -118,7 +118,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
       title: "Settings Updated",
       description: "Timer settings have been applied successfully!",
     });
-    
+
     // Reset timer if not running to apply new duration
     if (!isRunning) {
       setTimeout(() => {
@@ -130,15 +130,15 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
   const openExternalSmilePopup = () => {
     const width = smilePopupSettings.windowWidth || 400;
     const height = smilePopupSettings.windowHeight || 300;
-    
+
     const left = Math.round((screen.width - width) / 2);
     const top = Math.round((screen.height - height) / 2);
-    
+
     const params = new URLSearchParams({
       sessionType: sessionType,
       sessionCount: totalSessions.toString(),
     });
-    
+
     if (typeof chrome !== 'undefined' && chrome.windows) {
       const url = chrome.runtime.getURL(`smile-popup.html?${params.toString()}`);
       chrome.windows.create({
@@ -168,7 +168,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
       } else {
         setShowSmilePopup(true);
       }
-      
+
       if (sessionType === 'focus') {
         handleStartBreak();
       }
@@ -219,7 +219,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
               </>
             )}
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -326,7 +326,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
                     </>
                   )}
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   size="lg"

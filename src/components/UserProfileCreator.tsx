@@ -23,9 +23,9 @@ export const UserProfileCreator: React.FC = () => {
         id: user.id,
         email: user.email!,
         full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        avatar_url: user.user_metadata?.avatar_url || null,
+        avatar_url: user.user_metadata?.avatar_url || undefined,
       })
-      
+
       setProfileCreated(true)
       toast.success('User profile created successfully!')
 
@@ -128,8 +128,8 @@ export const UserProfileCreator: React.FC = () => {
           </ul>
         </div>
 
-        <Button 
-          onClick={createUserProfile} 
+        <Button
+          onClick={createUserProfile}
           disabled={creating || (profileCreated && settingsCreated)}
           className="w-full"
         >

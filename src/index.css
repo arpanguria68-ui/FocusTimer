@@ -214,4 +214,43 @@
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
+
+  /* Glassmorphism Timer Design System */
+  :root {
+    --glass-cyan: #67e8f9;
+    --glass-purple: #c084fc;
+    --glass-white: #ffffff;
+  }
+
+  .glass-timer-card {
+    background: linear-gradient(135deg, rgba(103, 232, 249, 0.9) 0%, rgba(192, 132, 252, 0.8) 50%, rgba(255, 255, 255, 0.95) 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-timer-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    pointer-events: none;
+    filter: url(#noiseFilter);
+  }
+
+  .digital-font {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.05em;
+  }
+
+  .glow-subtle {
+    box-shadow: 0 0 40px rgba(103, 232, 249, 0.15);
+  }
+
+  .ios-status-bar {
+    height: env(safe-area-inset-top, 44px);
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+  }
 }

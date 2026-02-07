@@ -3,19 +3,17 @@
   "name": "Focus Timer - Pomodoro & Productivity",
   "version": "1.0.0",
   "description": "Beautiful Pomodoro timer with focus sessions, break reminders, task management, and productivity tracking. Stay focused and productive!",
-  
   "permissions": [
     "storage",
     "alarms",
     "notifications",
     "activeTab",
-    "windows"
+    "windows",
+    "identity"
   ],
-  
   "background": {
     "service_worker": "background.js"
   },
-  
   "action": {
     "default_popup": "index.html",
     "default_title": "Focus Timer",
@@ -26,22 +24,27 @@
       "128": "icons/icon128.svg"
     }
   },
-  
   "icons": {
     "16": "icons/icon16.svg",
     "32": "icons/icon32.svg",
     "48": "icons/icon48.svg",
     "128": "icons/icon128.svg"
-    },
-  
+  },
   "web_accessible_resources": [
     {
-      "resources": ["dashboard.html", "fullapp.html", "smile-popup.html", "logo.svg", "icons/*.svg"],
-      "matches": ["*://*/*"]
+      "resources": [
+        "dashboard.html",
+        "fullapp.html",
+        "smile-popup.html",
+        "logo.svg",
+        "icons/*.svg"
+      ],
+      "matches": [
+        "*://*/*"
+      ]
     }
   ],
-  
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://sbiykywpmkqhmgzisrez.supabase.co;"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://grand-marlin-966.convex.cloud https://valued-liger-15.clerk.accounts.dev https://clerk.com https://*.clerk.accounts.dev wss://grand-marlin-966.convex.cloud; frame-src 'self' https://valued-liger-15.clerk.accounts.dev https://clerk.com https://*.clerk.accounts.dev; worker-src 'self';"
   }
 }

@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Target, Plus, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useCreateUserGoal } from '@/hooks/useSupabaseQueries';
+import { useCreateUserGoal } from '@/hooks/useConvexQueries';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,7 @@ export function GoalCreationDialog({ children }: GoalCreationDialogProps) {
   const [open, setOpen] = useState(false);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  
+
   const [formData, setFormData] = useState({
     goal_name: '',
     goal_description: '',
@@ -35,7 +35,7 @@ export function GoalCreationDialog({ children }: GoalCreationDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast.error('Please sign in to create goals');
       return;
@@ -68,10 +68,10 @@ export function GoalCreationDialog({ children }: GoalCreationDialogProps) {
       };
 
       await createGoal.mutateAsync(goalData);
-      
+
       toast.success('Goal created successfully! 🎯');
       setOpen(false);
-      
+
       // Reset form
       setFormData({
         goal_name: '',
@@ -106,7 +106,7 @@ export function GoalCreationDialog({ children }: GoalCreationDialogProps) {
 
   const handleGoalTypeChange = (goalType: 'daily' | 'weekly' | 'monthly' | 'custom') => {
     setFormData(prev => ({ ...prev, goal_type: goalType }));
-    
+
     if (goalType !== 'custom' && startDate) {
       const defaultEnd = getDefaultEndDate(goalType, startDate);
       if (defaultEnd) {
@@ -117,7 +117,7 @@ export function GoalCreationDialog({ children }: GoalCreationDialogProps) {
 
   const handleStartDateChange = (date: Date | undefined) => {
     setStartDate(date);
-    
+
     if (date && formData.goal_type !== 'custom') {
       const defaultEnd = getDefaultEndDate(formData.goal_type, date);
       if (defaultEnd) {
@@ -154,7 +154,7 @@ export function GoalCreationDialog({ children }: GoalCreationDialogProps) {
             Create New Goal
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Goal Name */}
           <div className="space-y-2">

@@ -1,22 +1,24 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AuthProvider } from "@/components/AuthProvider";
-import Index from "./pages/Index";
-import { ChromeExtensionMain } from "./pages/ChromeExtensionMain";
-import { DashboardPage } from "./pages/DashboardPage";
-import { Dashboard } from "./components/Dashboard";
-import { AuthenticatedDashboard } from "./components/AuthenticatedDashboard";
-import { ExternalSmilePopupPage } from "./pages/ExternalSmilePopupPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { EmailConfirmationPage } from "./pages/EmailConfirmationPage";
-import { MagicLinkPage } from "./pages/MagicLinkPage";
-import { ChangeEmailPage } from "./pages/ChangeEmailPage";
-import NotFound from "./pages/NotFound";
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { PreviewModeProvider, PreviewModeBanner } from "@/components/PreviewMode";
+import { PreviewDashboard } from "@/components/PreviewDashboard";
+import { Loader2 } from "lucide-react";
+
+// Lazy load components
+const PreviewPage = React.lazy(() => import("./pages/PreviewPage"));
+const Index = React.lazy(() => import("./pages/Index"));
+const ChromeExtensionMain = React.lazy(() => import("./pages/ChromeExtensionMain").then(m => ({ default: m.ChromeExtensionMain })));
+const DashboardPage = React.lazy(() => import("./pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
+const AuthenticatedDashboard = React.lazy(() => import("./components/AuthenticatedDashboard").then(m => ({ default: m.AuthenticatedDashboard })));
+const ExternalSmilePopupPage = React.lazy(() => import("./pages/ExternalSmilePopupPage").then(m => ({ default: m.ExternalSmilePopupPage })));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,6 +29,12 @@ const queryClient = new QueryClient({
   },
 });
 
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-screen w-full">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
+
 const App = () => {
   // Determine if we're in extension context or web development
   const isExtension = typeof window !== 'undefined' && (
@@ -35,89 +43,78 @@ const App = () => {
     window.location.href.includes('chrome-extension://') ||
     (window as any).chrome?.runtime?.id
   );
-  
+
+  // Check for preview mode
+  const isPreviewMode = typeof window !== 'undefined' && (
+    window.location.search.includes('preview=true') ||
+    localStorage.getItem('focusTimer_previewMode') === 'true'
+  );
+
   // Use HashRouter for extension, BrowserRouter for web development
   const Router = isExtension ? HashRouter : BrowserRouter;
 
-  // Handle email confirmation from URL hash
-  React.useEffect(() => {
-    const handleEmailConfirmation = () => {
-      const hash = window.location.hash;
-      if (hash.includes('access_token') || hash.includes('error=')) {
-        // Redirect to email confirmation page with the hash parameters
-        const params = new URLSearchParams(hash.substring(1));
-        const searchParams = new URLSearchParams();
-        
-        // Convert hash parameters to search parameters
-        for (const [key, value] of params) {
-          searchParams.set(key, value);
-        }
-        
-        // Redirect to confirmation page
-        window.location.href = `/confirm-email?${searchParams.toString()}`;
-      }
-    };
 
-    handleEmailConfirmation();
-  }, []);
 
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Router>
-              <Routes>
-                {/* Chrome Extension Routes - Extension gets priority */}
-                {isExtension ? (
-                  <>
-                    {/* Main extension popup routes */}
-                    <Route path="/" element={<ChromeExtensionMain />} />
-                    <Route path="/index" element={<ChromeExtensionMain />} />
-                    
-                    {/* Dashboard extension routes - Direct to authenticated dashboard, no freemium */}
-                    <Route path="/dashboard" element={<AuthenticatedDashboard />} />
-                    <Route path="/dashboard/*" element={<AuthenticatedDashboard />} />
-                    
-                    {/* Full app extension routes */}
-                    <Route path="/fullapp" element={<Index />} />
-                    <Route path="/app" element={<Index />} />
-                    
-                    {/* Utility extension routes */}
-                    <Route path="/smile-popup" element={<ExternalSmilePopupPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="/confirm-email" element={<EmailConfirmationPage />} />
-                    <Route path="/magic-link" element={<MagicLinkPage />} />
-                    <Route path="/change-email" element={<ChangeEmailPage />} />
-                    
-                    {/* Fallback for extension */}
-                    <Route path="*" element={<ChromeExtensionMain />} />
-                  </>
-                ) : (
-                  <>
-                    {/* Web App Routes - Freemium Flow */}
-                    <Route path="/" element={<Index />} />
-                    <Route path="/app" element={<Index />} />
-                    <Route path="/fullapp" element={<Index />} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    
-                    {/* Auth & Utility Routes */}
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="/smile-popup" element={<ExternalSmilePopupPage />} />
-                    <Route path="/confirm-email" element={<EmailConfirmationPage />} />
-                    <Route path="/magic-link" element={<MagicLinkPage />} />
-                    <Route path="/change-email" element={<ChangeEmailPage />} />
-                    
-                    {/* 404 Catch-all - Must be last */}
-                    <Route path="*" element={<NotFound />} />
-                  </>
-                )}
-              </Routes>
-            </Router>
-          </TooltipProvider>
-        </AuthProvider>
+        <PreviewModeProvider>
+          <ConvexClientProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <PreviewModeBanner />
+              {isPreviewMode ? (
+                <PreviewDashboard />
+              ) : (
+                <Router>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      {/* Chrome Extension Routes - Extension gets priority */}
+                      {isExtension ? (
+                        <>
+                          {/* Main extension popup routes */}
+                          <Route path="/" element={<ChromeExtensionMain />} />
+                          <Route path="/index" element={<ChromeExtensionMain />} />
+
+                          {/* Dashboard extension routes - Direct to authenticated dashboard, no freemium */}
+                          <Route path="/dashboard" element={<AuthenticatedDashboard />} />
+                          <Route path="/dashboard/*" element={<AuthenticatedDashboard />} />
+
+                          {/* Full app extension routes */}
+                          <Route path="/fullapp" element={<Index />} />
+                          <Route path="/app" element={<Index />} />
+
+                          {/* Utility extension routes */}
+                          <Route path="/smile-popup" element={<ExternalSmilePopupPage />} />
+
+
+                          {/* Fallback for extension */}
+                          <Route path="*" element={<ChromeExtensionMain />} />
+                        </>
+                      ) : (
+                        <>
+                          {/* Web App Routes - Freemium Flow */}
+                          <Route path="/" element={<Index />} />
+                          <Route path="/app" element={<Index />} />
+                          <Route path="/fullapp" element={<Index />} />
+                          <Route path="/dashboard" element={<DashboardPage />} />
+                          <Route path="/preview" element={<PreviewPage />} />
+
+                          {/* Auth & Utility Routes */}
+                          <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
+
+                          {/* 404 Catch-all - Must be last */}
+                          <Route path="*" element={<NotFound />} />
+                        </>
+                      )}
+                    </Routes>
+                  </Suspense>
+                </Router>
+              )}
+            </TooltipProvider>
+          </ConvexClientProvider>
+        </PreviewModeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

@@ -1,8 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { usePersistedState } from './usePersistedState'
 import { useAuth } from './useAuth'
-import { useCreateSession, useCompleteSession, useUserSettings } from './useSupabaseQueries'
-import { SessionService } from '@/services/sessionService'
+import { useCreateSession, useCompleteSession, useUserSettings } from './useConvexQueries'
 
 export interface TimerState {
   currentTime: number
@@ -72,7 +71,7 @@ export function useTimerState() {
 
     try {
       // Create session in database
-      const sessionData = await createSession.mutateAsync({
+      const sessionId = await createSession.mutateAsync({
         user_id: user.id,
         session_type: timerState.sessionType,
         duration_minutes: Math.floor(timerState.currentTime / 60),
@@ -82,7 +81,7 @@ export function useTimerState() {
       setTimerState(prev => ({
         ...prev,
         isRunning: true,
-        currentSessionId: sessionData.id,
+        currentSessionId: sessionId,
         lastUpdated: Date.now()
       }))
     } catch (error) {
@@ -111,11 +110,11 @@ export function useTimerState() {
 
     try {
       await completeSession.mutateAsync(timerState.currentSessionId)
-      
+
       // Determine next session type
       const sessionsUntilLongBreak = userSettings?.sessions_until_long_break || 4
       const isLongBreakTime = timerState.currentSession % sessionsUntilLongBreak === 0
-      
+
       let nextSessionType: TimerState['sessionType']
       if (timerState.sessionType === 'focus') {
         nextSessionType = isLongBreakTime ? 'long_break' : 'short_break'
@@ -197,10 +196,10 @@ export function useTimerState() {
     if (timerState.isRunning && timerState.lastUpdated) {
       const now = Date.now()
       const timeSinceLastUpdate = Math.floor((now - timerState.lastUpdated) / 1000)
-      
+
       if (timeSinceLastUpdate > 0) {
         const newTime = Math.max(0, timerState.currentTime - timeSinceLastUpdate)
-        
+
         setTimerState(prev => ({
           ...prev,
           currentTime: newTime,
@@ -219,7 +218,7 @@ export function useTimerState() {
   useEffect(() => {
     const handleSettingsChange = (event: CustomEvent) => {
       const newSettings = event.detail;
-      
+
       // Only update timer duration if timer is not currently running
       if (!timerState.isRunning) {
         const newDuration = getSessionDuration(timerState.sessionType);
@@ -232,7 +231,7 @@ export function useTimerState() {
     };
 
     window.addEventListener('timerSettingsChanged', handleSettingsChange as EventListener);
-    
+
     return () => {
       window.removeEventListener('timerSettingsChanged', handleSettingsChange as EventListener);
     };
@@ -255,19 +254,19 @@ export function useTimerState() {
   return {
     // State
     ...timerState,
-    
+
     // Actions
     startTimer,
     pauseTimer,
     resetTimer,
     switchSessionType,
     completeCurrentSession,
-    
+
     // Computed values
-    progress: timerState.currentTime > 0 
+    progress: timerState.currentTime > 0
       ? ((getSessionDuration(timerState.sessionType) - timerState.currentTime) / getSessionDuration(timerState.sessionType)) * 100
       : 100,
-    
+
     // Status
     isLoading: createSession.isPending || completeSession.isPending
   }

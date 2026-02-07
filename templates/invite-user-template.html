@@ -1,30 +1,34 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>You're Invited to Focus Timer!</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background-color: #f8fafc; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
             line-height: 1.6;
         }
-        .container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background: white; 
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .header { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
-            padding: 40px 20px; 
-            text-align: center; 
+
+        .header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            padding: 40px 20px;
+            text-align: center;
             position: relative;
             overflow: hidden;
         }
+
         .header::before {
             content: '';
             position: absolute;
@@ -32,49 +36,59 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 10px,
-                rgba(255,255,255,0.05) 10px,
-                rgba(255,255,255,0.05) 20px
-            );
+            background: repeating-linear-gradient(45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255, 255, 255, 0.05) 10px,
+                    rgba(255, 255, 255, 0.05) 20px);
             animation: slide 20s linear infinite;
         }
+
         @keyframes slide {
-            0% { transform: translateX(-50px); }
-            100% { transform: translateX(50px); }
+            0% {
+                transform: translateX(-50px);
+            }
+
+            100% {
+                transform: translateX(50px);
+            }
         }
-        .logo { 
-            color: white; 
-            font-size: 32px; 
-            font-weight: bold; 
-            margin-bottom: 10px; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+
+        .logo {
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             position: relative;
             z-index: 1;
         }
-        .subtitle { 
-            color: rgba(255,255,255,0.9); 
-            font-size: 18px; 
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
             font-weight: 300;
             position: relative;
             z-index: 1;
         }
-        .content { 
-            padding: 40px 30px; 
+
+        .content {
+            padding: 40px 30px;
         }
+
         .title {
             font-size: 24px;
             color: #1a202c;
             margin-bottom: 20px;
             font-weight: 600;
         }
+
         .description {
             color: #4a5568;
             font-size: 16px;
             margin-bottom: 30px;
         }
+
         .inviter-info {
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
@@ -83,6 +97,7 @@
             margin: 25px 0;
             text-align: center;
         }
+
         .inviter-avatar {
             width: 60px;
             height: 60px;
@@ -95,55 +110,64 @@
             color: white;
             margin-bottom: 10px;
         }
+
         .inviter-name {
             font-size: 18px;
             font-weight: 600;
             color: #065f46;
             margin-bottom: 5px;
         }
+
         .inviter-message {
             color: #047857;
             font-style: italic;
         }
-        .button { 
-            display: inline-block; 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
-            color: white; 
-            padding: 18px 36px; 
-            text-decoration: none; 
-            border-radius: 10px; 
-            font-weight: 600; 
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 18px 36px;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
             font-size: 16px;
-            margin: 20px 0; 
+            margin: 20px 0;
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
             transition: transform 0.2s ease;
         }
+
         .button:hover {
             transform: translateY(-2px);
         }
+
         .benefits {
             background: #f8fafc;
             padding: 25px;
             border-radius: 8px;
             margin: 30px 0;
         }
+
         .benefit {
             display: flex;
             align-items: center;
             margin: 15px 0;
             color: #374151;
         }
+
         .benefit-icon {
             margin-right: 12px;
             font-size: 20px;
         }
-        .footer { 
-            background: #f1f5f9; 
-            padding: 30px; 
-            text-align: center; 
-            color: #64748b; 
-            font-size: 14px; 
+
+        .footer {
+            background: #f1f5f9;
+            padding: 30px;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
         }
+
         .expiry-note {
             background: #fffbeb;
             border: 1px solid #fbbf24;
@@ -151,9 +175,11 @@
             border-radius: 6px;
             margin: 20px 0;
         }
+
         .expiry-note strong {
             color: #92400e;
         }
+
         .link-backup {
             background: #f7fafc;
             padding: 15px;
@@ -163,6 +189,7 @@
             color: #718096;
             word-break: break-all;
         }
+
         .team-stats {
             display: flex;
             justify-content: space-around;
@@ -171,14 +198,17 @@
             border-radius: 8px;
             margin: 20px 0;
         }
+
         .stat {
             text-align: center;
         }
+
         .stat-number {
             font-size: 24px;
             font-weight: bold;
             color: #065f46;
         }
+
         .stat-label {
             font-size: 12px;
             color: #047857;
@@ -187,6 +217,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -196,19 +227,20 @@
         <div class="content">
             <h2 class="title">You're Invited to Join Focus Timer!</h2>
             <p class="description">
-                Great news! Someone wants you to join their productivity journey on Focus Timer. Join thousands of users who have transformed their work habits and achieved their goals.
+                Great news! Someone wants you to join their productivity journey on Focus Timer. Join thousands of users
+                who have transformed their work habits and achieved their goals.
             </p>
-            
+
             <div class="inviter-info">
                 <div class="inviter-avatar">👤</div>
                 <div class="inviter-name">{{ .InviterName | default "A colleague" }}</div>
                 <div class="inviter-message">"Join me on Focus Timer and let's boost our productivity together!"</div>
             </div>
-            
+
             <div style="text-align: center; margin: 30px 0;">
                 <a href="{{ .ConfirmationURL }}" class="button">Accept Invitation & Join</a>
             </div>
-            
+
             <div class="benefits">
                 <h3 style="margin-top: 0; color: #374151;">What you'll get with Focus Timer:</h3>
                 <div class="benefit">
@@ -236,7 +268,7 @@
                     <span>Achievements and productivity streaks</span>
                 </div>
             </div>
-            
+
             <div class="team-stats">
                 <div class="stat">
                     <div class="stat-number">50K+</div>
@@ -251,11 +283,12 @@
                     <div class="stat-label">Satisfaction</div>
                 </div>
             </div>
-            
+
             <div class="expiry-note">
-                <strong>⏰ Time Limit:</strong> This invitation will expire in 7 days. Don't miss out on joining your colleague's productivity journey!
+                <strong>⏰ Time Limit:</strong> This invitation will expire in 7 days. Don't miss out on joining your
+                colleague's productivity journey!
             </div>
-            
+
             <div class="link-backup">
                 <strong>Can't click the button?</strong> Copy and paste this link into your browser:<br>
                 {{ .ConfirmationURL }}
@@ -268,4 +301,5 @@
         </div>
     </div>
 </body>
+
 </html>

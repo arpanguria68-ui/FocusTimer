@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Zap, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TimerCircle } from './TimerCircle';
 import { MiniTimerSettings } from './MiniTimerSettings';
 import { SessionStats } from './SessionStats';
@@ -13,6 +15,7 @@ import SmilePopup from './SmilePopup';
 import { useToast } from '@/hooks/use-toast';
 import { useSmilePopupSettings } from '@/hooks/useChromeStorage';
 import { useOfflineTimerState } from '@/hooks/useOfflineTimerState';
+import { useTaskState } from '@/hooks/useTaskState';
 import { useAuth } from '@/hooks/useAuth';
 import '@/utils/timerDebug'; // Load debug utilities
 
@@ -26,10 +29,17 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [showSmilePopup, setShowSmilePopup] = useState(false);
-  
+
+  // Local state for task selection
+  // const [selectedTaskId, setSelectedTaskId] = useState<string>('none'); // Replaced by global state
+  const [selectedCategory, setSelectedCategory] = useState<'signal' | 'noise'>('signal');
+
   // Get smile popup settings from Chrome storage
   const { value: smilePopupSettings } = useSmilePopupSettings();
-  
+
+  // Get shared task state
+  const { activeTasks, selectedTaskId, selectTask } = useTaskState();
+
   // Use offline-first timer state management
   const {
     currentTime,
@@ -37,13 +47,12 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
     sessionType,
     currentSession,
     totalSessions,
-    progress,
-    isLoading,
     startTimer,
     pauseTimer,
     resetTimer,
     switchSessionType,
-    completeCurrentSession
+    taskId,
+    category
   } = useOfflineTimerState();
 
   // Helper function to get total duration for current session type
@@ -64,7 +73,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
       default: return 25 * 60;
     }
   };
-  
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -83,10 +92,19 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
   const getModeVariant = (mode: TimerMode) => {
     switch (mode) {
       case 'focus': return 'timer';
-      case 'short_break': 
-      case 'long_break': 
+      case 'short_break':
+      case 'long_break':
         return 'break';
       default: return 'timer';
+    }
+  };
+
+  const handleStartTimer = () => {
+    if (selectedTaskId && selectedTaskId !== 'none') {
+      const task = activeTasks.find(t => t.id === selectedTaskId);
+      startTimer(selectedTaskId, task?.category || 'signal');
+    } else {
+      startTimer(undefined, selectedCategory);
     }
   };
 
@@ -94,7 +112,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
     if (isRunning) {
       pauseTimer();
     } else {
-      startTimer();
+      handleStartTimer();
     }
   };
 
@@ -123,28 +141,35 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
 
   const handleSettingsChange = (newSettings: any) => {
     console.log('Timer settings changed:', newSettings);
-    
+
     toast({
       title: "Settings Updated",
       description: "Timer settings have been applied successfully!",
     });
-    
-    // The useOfflineTimerState hook will automatically handle the timer update
-    // via the 'timerSettingsChanged' event listener
   };
 
   const openExternalSmilePopup = () => {
-    const width = smilePopupSettings.windowWidth || 400;
-    const height = smilePopupSettings.windowHeight || 300;
-    
-    const left = Math.round((screen.width - width) / 2);
-    const top = Math.round((screen.height - height) / 2);
-    
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
     const params = new URLSearchParams({
-      sessionType: sessionType,
+      sessionType,
       sessionCount: totalSessions.toString(),
     });
-    
+
+    // Add task info if available
+    if (taskId) {
+      const task = activeTasks.find(t => t.id === taskId);
+      if (task) {
+        params.append('taskTitle', task.title);
+        params.append('category', task.category);
+      }
+    } else if (category) {
+      params.append('category', category);
+    }
+
     if (typeof chrome !== 'undefined' && chrome.windows) {
       const url = chrome.runtime.getURL(`smile-popup.html?${params.toString()}`);
       chrome.windows.create({
@@ -152,8 +177,8 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
         type: 'popup',
         width,
         height,
-        left,
-        top,
+        left: Math.round(left),
+        top: Math.round(top),
         focused: true,
       });
     } else {
@@ -174,12 +199,15 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
       } else {
         setShowSmilePopup(true);
       }
-      
+
       if (sessionType === 'focus') {
         handleStartBreak();
       }
     }
   }, [currentTime, isRunning, sessionType]);
+
+  const progress = ((getTotalDuration(sessionType) - currentTime) / getTotalDuration(sessionType)) * 100;
+  const isLoading = false; // Placeholder if needed
 
   if (isCompact) {
     return (
@@ -225,7 +253,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
               </>
             )}
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -250,6 +278,8 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
           sessionType={sessionType}
           sessionCount={totalSessions}
           customImage={smilePopupSettings.customImage}
+          taskTitle={taskId ? activeTasks.find(t => t.id === taskId)?.title : undefined}
+          category={category || undefined}
         />
       </div>
     );
@@ -288,13 +318,95 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
                   totalTime={getTotalDuration(sessionType)}
                   mode={sessionType}
                   isRunning={isRunning}
-                />
+                >
+                  <div className="timer-display text-center text-foreground flex flex-col items-center justify-center">
+                    <span className="text-6xl font-bold tracking-tight digital-font text-foreground drop-shadow-md">
+                      {formatTime(currentTime)}
+                    </span>
+                    <span className="text-xs font-medium uppercase tracking-widest opacity-60 mt-2">
+                      {sessionType === 'focus' ? 'Focus' : 'Break'}
+                    </span>
+                  </div>
+                </TimerCircle>
               </div>
 
-              <div className="mb-8 flex justify-center">
-                <div className="timer-display text-center text-foreground">
-                  {formatTime(currentTime)}
+              <div className="mb-8 flex justify-center flex-col items-center">
+                {/* Session Info */}
+                <div className="flex flex-col items-center gap-1 mb-6">
+                  {isRunning && (
+                    <Badge
+                      variant={selectedTaskId ? 'default' : 'secondary'}
+                      className={`text-xs ${(selectedTaskId ? activeTasks.find(t => t.id === selectedTaskId)?.category : selectedCategory) === 'signal'
+                        ? 'bg-yellow-500 hover:bg-yellow-600'
+                        : ''
+                        }`}
+                    >
+                      {selectedTaskId
+                        ? activeTasks.find(t => t.id === selectedTaskId)?.title
+                        : (selectedCategory === 'signal' ? 'Signal ⚡' : 'Noise 🔔')
+                      }
+                    </Badge>
+                  )}
                 </div>
+
+                {/* Task/Category Selection (only when not running) */}
+                {!isRunning && sessionType === 'focus' && (
+                  <div className="w-full max-w-xs mb-6 space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground ml-1">Focus Task</label>
+                      <Select
+                        value={selectedTaskId || 'none'}
+                        onValueChange={(val) => selectTask(val === 'none' ? null : val)}
+                      >
+                        <SelectTrigger className="w-full glass">
+                          <SelectValue placeholder="Select a task..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No specific task</SelectItem>
+                          {activeTasks.map(task => (
+                            <SelectItem key={task.id} value={task.id}>
+                              <span className="flex items-center justify-between w-full gap-2">
+                                <span className="truncate max-w-[180px]">{task.title}</span>
+                                <span className="flex items-center gap-2">
+                                  {(task as any).isLocal && <span className="text-[10px] text-muted-foreground">(Local)</span>}
+                                  <Badge variant="outline" className="text-[10px] h-5">
+                                    {task.category === 'signal' ? '⚡' : '🔔'}
+                                  </Badge>
+                                </span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {!selectedTaskId && (
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground ml-1">Session Category</label>
+                        <div className="flex gap-2">
+                          <Button
+                            variant={selectedCategory === 'signal' ? 'default' : 'outline'}
+                            size="sm"
+                            className={`flex-1 ${selectedCategory === 'signal' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}`}
+                            onClick={() => setSelectedCategory('signal')}
+                          >
+                            <Zap className="h-3 w-3 mr-2" />
+                            Signal
+                          </Button>
+                          <Button
+                            variant={selectedCategory === 'noise' ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setSelectedCategory('noise')}
+                          >
+                            <Bell className="h-3 w-3 mr-2" />
+                            Noise
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="mb-8">
@@ -321,7 +433,7 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
                     </>
                   )}
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   size="lg"
@@ -376,6 +488,8 @@ export function FocusTimer({ isCompact = false }: FocusTimerProps) {
           sessionType={sessionType}
           sessionCount={totalSessions}
           customImage={smilePopupSettings.customImage}
+          taskTitle={taskId ? activeTasks.find(t => t.id === taskId)?.title : undefined}
+          category={category || undefined}
         />
       </div>
     </div>

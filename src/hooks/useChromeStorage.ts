@@ -35,7 +35,7 @@ export function useChromeStorage<T>(
     try {
       const storage = chrome.storage[storageArea];
       const result = await storage.get(key);
-      
+
       if (result[key] !== undefined) {
         setValue(result[key]);
       }
@@ -64,15 +64,15 @@ export function useChromeStorage<T>(
     try {
       const storage = chrome.storage[storageArea];
       const serialized = JSON.stringify(newValue);
-      
+
       // Check size limits
       const sizeKB = new Blob([serialized]).size / 1024;
       const maxSize = storageArea === 'sync' ? 8 : 1024; // 8KB for sync, 1MB for local
-      
+
       if (sizeKB > maxSize) {
         throw new Error(`Data too large: ${Math.round(sizeKB)}KB exceeds ${maxSize}KB limit for ${storageArea} storage`);
       }
-      
+
       await storage.set({ [key]: newValue });
       setValue(newValue);
       setError(null);
@@ -100,7 +100,7 @@ export function useChromeStorage<T>(
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
-    
+
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange);
     };
@@ -126,9 +126,11 @@ export function useSmilePopupSettings() {
     quotesSource: 'motivational' as 'motivational' | 'productivity' | 'custom',
     autoClose: false,
     closeDelay: 5,
-    showAsExternalWindow: false, // New option for external mini window
+    showAsExternalWindow: false,
     windowWidth: 400,
     windowHeight: 300,
+    enableSound: false,
+    customSound: '',
   }, 'local'); // Use local storage for larger data like images
 }
 

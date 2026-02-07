@@ -10,13 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { UserService } from '@/services/userService';
 import { toast } from 'sonner';
-import { 
-  Timer, 
-  Target, 
-  User, 
-  Settings, 
-  CheckCircle, 
-  ArrowRight, 
+import {
+  Timer,
+  Target,
+  User,
+  Settings,
+  CheckCircle,
+  ArrowRight,
   ArrowLeft,
   Clock,
   Coffee,
@@ -36,18 +36,18 @@ interface OnboardingData {
   fullName: string;
   role: string;
   experience: string;
-  
+
   // Timer Preferences
   focusDuration: number;
   shortBreakDuration: number;
   longBreakDuration: number;
   sessionsUntilLongBreak: number;
-  
+
   // Notifications & Features
   notifications: boolean;
   soundEnabled: boolean;
   theme: 'light' | 'dark' | 'system';
-  
+
   // Goals & Productivity
   dailyGoal: number;
   primaryGoals: string[];
@@ -108,7 +108,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         id: user.id,
         email: user.email!,
         full_name: data.fullName,
-        avatar_url: user.user_metadata?.avatar_url || null,
+        avatar_url: user.user_metadata?.avatar_url || undefined,
         onboarding_completed: true,
       });
 
@@ -205,7 +205,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           <CardDescription>
             Let's personalize your productivity experience
           </CardDescription>
-          
+
           <div className="mt-4">
             <Progress value={progress} className="h-2" />
             <p className="text-sm text-muted-foreground mt-2">
@@ -283,8 +283,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Focus Duration (minutes)</Label>
-                  <Select 
-                    value={data.focusDuration.toString()} 
+                  <Select
+                    value={data.focusDuration.toString()}
                     onValueChange={(value) => setData(prev => ({ ...prev, focusDuration: parseInt(value) }))}
                   >
                     <SelectTrigger>
@@ -303,8 +303,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
                 <div className="space-y-2">
                   <Label>Short Break (minutes)</Label>
-                  <Select 
-                    value={data.shortBreakDuration.toString()} 
+                  <Select
+                    value={data.shortBreakDuration.toString()}
                     onValueChange={(value) => setData(prev => ({ ...prev, shortBreakDuration: parseInt(value) }))}
                   >
                     <SelectTrigger>
@@ -321,8 +321,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
                 <div className="space-y-2">
                   <Label>Long Break (minutes)</Label>
-                  <Select 
-                    value={data.longBreakDuration.toString()} 
+                  <Select
+                    value={data.longBreakDuration.toString()}
                     onValueChange={(value) => setData(prev => ({ ...prev, longBreakDuration: parseInt(value) }))}
                   >
                     <SelectTrigger>
@@ -339,8 +339,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
                 <div className="space-y-2">
                   <Label>Sessions until long break</Label>
-                  <Select 
-                    value={data.sessionsUntilLongBreak.toString()} 
+                  <Select
+                    value={data.sessionsUntilLongBreak.toString()}
                     onValueChange={(value) => setData(prev => ({ ...prev, sessionsUntilLongBreak: parseInt(value) }))}
                   >
                     <SelectTrigger>
@@ -447,8 +447,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Daily Focus Goal (sessions)</Label>
-                  <Select 
-                    value={data.dailyGoal.toString()} 
+                  <Select
+                    value={data.dailyGoal.toString()}
                     onValueChange={(value) => setData(prev => ({ ...prev, dailyGoal: parseInt(value) }))}
                   >
                     <SelectTrigger>
@@ -474,16 +474,15 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     ].map((goal) => (
                       <div
                         key={goal.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                          data.primaryGoals.includes(goal.id) 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-border hover:bg-muted/50'
-                        }`}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${data.primaryGoals.includes(goal.id)
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:bg-muted/50'
+                          }`}
                         onClick={() => handleGoalToggle(goal.id)}
                       >
                         <Checkbox
                           checked={data.primaryGoals.includes(goal.id)}
-                          onChange={() => {}} // Handled by parent click
+                          onChange={() => { }} // Handled by parent click
                         />
                         <goal.icon className="h-4 w-4" />
                         <span className="text-sm">{goal.label}</span>
@@ -505,6 +504,21 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
 
               <div className="space-y-4">
+                <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 p-4 rounded-lg flex items-center justify-between group cursor-pointer hover:shadow-md transition-all" onClick={() => window.open('https://chrome.google.com/webstore/detail/your-extension-id', '_blank')}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground">Get the Chrome Extension</h4>
+                      <p className="text-xs text-muted-foreground">Stay focused from any tab with our browser companion</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="default" className="gap-2">
+                    Install <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+
                 <div className="bg-muted/50 p-4 rounded-lg space-y-3">
                   <h4 className="font-medium">Your Configuration:</h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -525,7 +539,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       <span className="ml-2 font-medium capitalize">{data.theme}</span>
                     </div>
                   </div>
-                  
+
                   {data.primaryGoals.length > 0 && (
                     <div>
                       <span className="text-muted-foreground">Goals:</span>
@@ -571,8 +585,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button 
-                onClick={handleComplete} 
+              <Button
+                onClick={handleComplete}
                 disabled={loading}
                 className="flex items-center gap-2"
               >

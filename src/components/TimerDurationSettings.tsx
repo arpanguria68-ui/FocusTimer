@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Timer, Save, RotateCcw, Loader2 } from 'lucide-react';
-import { useUserSettings, useUpdateUserSettings } from '@/hooks/useSupabaseQueries';
+import { useUserSettings, useUpdateUserSettings } from '@/hooks/useConvexQueries';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -12,7 +12,7 @@ export function TimerDurationSettings() {
   const { user } = useAuth();
   const { data: userSettings, isLoading } = useUserSettings();
   const updateSettings = useUpdateUserSettings();
-  
+
   const [settings, setSettings] = useState({
     focus_duration: 25,
     short_break_duration: 5,
@@ -53,10 +53,10 @@ export function TimerDurationSettings() {
       await updateSettings.mutateAsync(settings);
       setHasChanges(false);
       toast.success('Timer settings saved successfully!');
-      
+
       // Trigger a custom event to notify timer components
-      window.dispatchEvent(new CustomEvent('timerSettingsChanged', { 
-        detail: settings 
+      window.dispatchEvent(new CustomEvent('timerSettingsChanged', {
+        detail: settings
       }));
     } catch (error) {
       toast.error('Failed to save timer settings');
@@ -98,9 +98,9 @@ export function TimerDurationSettings() {
               <RotateCcw className="h-4 w-4 mr-1" />
               Reset
             </Button>
-            <Button 
-              variant="timer" 
-              size="sm" 
+            <Button
+              variant="timer"
+              size="sm"
               onClick={handleSave}
               disabled={updateSettings.isPending}
             >

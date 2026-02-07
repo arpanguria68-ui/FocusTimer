@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Coffee, SkipForward, Sparkles, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Coffee, SkipForward, Sparkles, X, Zap, Bell, ListMusic } from 'lucide-react';
+import { useQuotesState } from '@/hooks/useQuotesState';
+import { useAuth } from '@/hooks/useAuth';
 
-interface Quote {
-  id: string;
-  text: string;
-  author: string;
-}
+// @ts-ignore
+declare const chrome: any;
 
 interface ExternalSmilePopupProps {
   sessionType?: 'focus' | 'break' | 'longBreak';
@@ -18,40 +18,27 @@ interface ExternalSmilePopupProps {
   showCelebration?: boolean;
   autoClose?: boolean;
   closeDelay?: number;
+  taskTitle?: string;
+  category?: 'signal' | 'noise';
+  enableSound?: boolean;
+  customSound?: string;
+  onStartBreak?: () => void;
+  onSkipBreak?: () => void;
 }
 
-// Get quotes from localStorage or use minimal defaults
-const getStoredQuotes = (): Quote[] => {
-  const stored = localStorage.getItem('stored_quotes');
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return [];
-    }
-  }
-  return [
-    {
-      id: '1',
-      text: 'The secret of getting ahead is getting started.',
-      author: 'Mark Twain'
-    },
-    {
-      id: '2',
-      text: 'Success is not final, failure is not fatal: it is the courage to continue that counts.',
-      author: 'Winston Churchill'
-    },
-    {
-      id: '3',
-      text: 'The way to get started is to quit talking and begin doing.',
-      author: 'Walt Disney'
-    }
-  ];
-};
+// Interface for display
+interface DisplayQuote {
+  id: string;
+  content: string;
+  author: string;
+  source?: 'playlist' | 'random';
+  playlistName?: string;
+}
 
+// Helper component for effects
 const CelebrationEffects = ({ isVisible }: { isVisible: boolean }) => {
   if (!isVisible) return null;
-  
+
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {/* Floating sparkles */}
@@ -80,28 +67,68 @@ export function ExternalSmilePopup({
   showQuotes = true,
   showCelebration = true,
   autoClose = false,
-  closeDelay = 5
+  closeDelay = 5,
+  taskTitle,
+  category,
+  enableSound = false,
+  customSound,
+  onStartBreak,
+  onSkipBreak
 }: ExternalSmilePopupProps) {
-  
-  // Force autoClose to false for debugging - TEMPORARY FIX
-  const safeAutoClose = false; // Force to false to prevent auto-closing
+
+  const { getNextQuote, isLoading: quotesLoading, allQuotes } = useQuotesState();
+  const { user, session } = useAuth ? useAuth() : { user: null, session: null }; // Safe access just in case
+
+  useEffect(() => {
+    console.log('[ExternalSmilePopup Debug] Mount State:', {
+      hasUser: !!user,
+      userId: user?.id,
+      quotesLoading,
+      quotesCount: allQuotes.length,
+      storageKey: user ? `quotes-state_${user.id}` : 'quotes-state_anonymous'
+    });
+  }, [user, quotesLoading, allQuotes.length]);
+
+  // Handle audio playback
+  useEffect(() => {
+    let audio: HTMLAudioElement | null = null;
+
+    if (enableSound) {
+      const soundSrc = customSound || 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'; // Default success chime
+
+      audio = new Audio(soundSrc);
+      audio.volume = 0.5;
+      audio.loop = true;
+
+      console.log('Attempting to play audio:', soundSrc);
+      audio.play().catch(e => {
+        console.warn("Audio autoplay blocked or failed:", e);
+      });
+    }
+
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, [enableSound, customSound]); // Re-run if sound settings change
+
+  // Use the actual autoClose prop
+  const safeAutoClose = autoClose;
   const safeCloseDelay = typeof closeDelay === 'number' && closeDelay > 0 ? closeDelay : 5;
-  
+
   console.log('ExternalSmilePopup - Safe values:', {
     originalAutoClose: autoClose,
     safeAutoClose,
     originalCloseDelay: closeDelay,
     safeCloseDelay
   });
-  const [quote, setQuote] = useState<Quote | null>(null);
+
+  const [quote, setQuote] = useState<DisplayQuote | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(() => {
     const initialTime = safeAutoClose ? safeCloseDelay : 0;
-    console.log('Initial timeLeft state:', { 
-      safeAutoClose, 
-      safeCloseDelay, 
-      initialTime 
-    });
     return initialTime;
   });
   const [initialDelay] = useState(safeCloseDelay);
@@ -117,44 +144,94 @@ export function ExternalSmilePopup({
       sessionType,
       sessionCount
     });
-    
+
     // Add window beforeunload listener to debug unexpected closes
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       console.log('Window is about to close/unload');
     };
-    
+
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [safeAutoClose, safeCloseDelay, timeLeft, sessionType, sessionCount]);
 
+  // Load Quote Effect
+  const hasLoaded = React.useRef(false);
+
   useEffect(() => {
-    if (showQuotes) {
+    if (showQuotes && !hasLoaded.current) {
+      hasLoaded.current = true;
       setIsLoading(true);
-      setTimeout(() => {
-        const quotes = getStoredQuotes();
-        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-        setQuote(randomQuote);
-        setIsLoading(false);
-      }, 1000);
+
+      // Polling mechanism to wait for quotes
+      let attempts = 0;
+      const maxAttempts = 20; // 10 seconds total (20 * 500ms)
+
+      const pollForQuotes = () => {
+        attempts++;
+        console.log(`[ExternalSmilePopup] Polling attempt ${attempts}/${maxAttempts}.`);
+
+        try {
+          // Try to get a quote - method now prioritized cache per our hook changes
+          const result = getNextQuote();
+          console.log('[ExternalSmilePopup] result:', result);
+
+          if (result && result.quote) {
+            setQuote({
+              id: result.quote.id,
+              content: result.quote.content,
+              author: result.quote.author || 'Unknown',
+              source: result.source,
+              playlistName: result.playlistName
+            });
+            setIsLoading(false);
+          } else {
+            // If we're still polling, wait more unless max attempts reached
+            if (attempts >= maxAttempts) {
+              console.warn('[ExternalSmilePopup] Timed out waiting for quote');
+              setQuote({
+                id: 'fallback',
+                content: "The only way to do great work is to love what you do.",
+                author: "Steve Jobs",
+                source: 'random'
+              });
+              setIsLoading(false);
+            } else {
+              setTimeout(pollForQuotes, 500);
+            }
+          }
+        } catch (error) {
+          console.error('[ExternalSmilePopup] Error getting quote:', error);
+          if (attempts >= maxAttempts) setIsLoading(false);
+          else setTimeout(pollForQuotes, 500);
+        }
+      };
+
+
+      // Start polling
+      pollForQuotes();
+
+      // Clean up if component unmounts (though for popup this is rare until close)
+      return () => { };
     }
-  }, [showQuotes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showQuotes]); // Only depend on showQuotes, not getNextQuote (which changes on every call)
 
   // Auto close timer
   useEffect(() => {
-    console.log('Auto-close effect triggered:', { 
-      safeAutoClose, 
+    console.log('Auto-close effect triggered:', {
+      safeAutoClose,
       timeLeft,
       willClose: safeAutoClose && timeLeft === 0
     });
-    
+
     if (!safeAutoClose) {
       console.log('Auto-close is disabled, popup will stay open indefinitely');
       return;
     }
-    
+
     if (safeAutoClose && timeLeft > 0) {
       console.log(`Auto-close countdown: ${timeLeft} seconds remaining`);
       const timer = setTimeout(() => {
@@ -210,10 +287,10 @@ export function ExternalSmilePopup({
             </div>
             {/* Progress bar */}
             <div className="w-full bg-white/20 rounded-full h-1">
-              <div 
+              <div
                 className="bg-white rounded-full h-1 transition-all duration-1000 ease-linear"
-                style={{ 
-                  width: `${((initialDelay - timeLeft) / initialDelay) * 100}%` 
+                style={{
+                  width: `${((initialDelay - timeLeft) / initialDelay) * 100}%`
                 }}
               ></div>
             </div>
@@ -245,6 +322,27 @@ export function ExternalSmilePopup({
             <p className="text-gray-600 text-lg">
               Time to Smile and recharge!
             </p>
+
+            {taskTitle && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">You just focused on</p>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-medium text-gray-800 truncate max-w-[200px]">
+                    {taskTitle}
+                  </span>
+                  {category && (
+                    <Badge
+                      variant={category === 'signal' ? 'default' : 'secondary'}
+                      className={`text-[10px] h-5 px-1.5 ${category === 'signal' ? 'bg-yellow-500 hover:bg-yellow-600' : ''
+                        }`}
+                    >
+                      {category === 'signal' ? <Zap className="h-3 w-3 mr-1" /> : <Bell className="h-3 w-3 mr-1" />}
+                      {category === 'signal' ? 'Signal ⚡' : 'Noise 🔔'}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </CardHeader>
 
@@ -264,10 +362,16 @@ export function ExternalSmilePopup({
               ) : quote ? (
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
                   <blockquote className="text-lg leading-relaxed font-medium italic text-gray-800">
-                    "{quote.text}"
+                    "{quote.content}"
                   </blockquote>
-                  <cite className="block text-right mt-4 not-italic text-gray-600 font-medium">
-                    — {quote.author}
+                  <cite className="block text-right mt-4 not-italic text-gray-600 font-medium flex flex-col items-end">
+                    <span>— {quote.author}</span>
+                    {quote.source === 'playlist' && (
+                      <Badge variant="secondary" className="mt-2 text-[10px] bg-purple-100 text-purple-600 hover:bg-purple-200">
+                        <ListMusic className="w-3 h-3 mr-1" />
+                        {quote.playlistName || 'Playlist'}
+                      </Badge>
+                    )}
                   </cite>
                 </div>
               ) : null}
@@ -276,7 +380,10 @@ export function ExternalSmilePopup({
 
           <div className="flex justify-center gap-4 pt-4">
             <Button
-              onClick={() => handleAction('skip')}
+              onClick={() => {
+                handleAction('skip');
+                onSkipBreak?.();
+              }}
               variant="outline"
               size="lg"
               className="gap-2 hover:scale-105 transition-all duration-200"
@@ -285,7 +392,10 @@ export function ExternalSmilePopup({
               Skip Break
             </Button>
             <Button
-              onClick={() => handleAction('continue')}
+              onClick={() => {
+                handleAction('continue');
+                onStartBreak?.();
+              }}
               size="lg"
               className="gap-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
             >

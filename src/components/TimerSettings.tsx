@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useUserSettings, useUpdateUserSettings } from '@/hooks/useSupabaseQueries';
+import { useUserSettings, useUpdateUserSettings } from '@/hooks/useConvexQueries';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -23,7 +23,7 @@ export function TimerSettings({ settings, onSettingsChange, onClose }: TimerSett
   const { user } = useAuth();
   const { data: userSettings } = useUserSettings();
   const updateSettings = useUpdateUserSettings();
-  
+
   const [tempSettings, setTempSettings] = useState({
     focusTime: Math.floor(settings.focusTime / 60),
     breakTime: Math.floor(settings.breakTime / 60),
@@ -71,12 +71,12 @@ export function TimerSettings({ settings, onSettingsChange, onClose }: TimerSett
 
     // Apply settings to timer
     onSettingsChange(newSettings);
-    
+
     // Trigger custom event for other components
-    window.dispatchEvent(new CustomEvent('timerSettingsChanged', { 
-      detail: newSettings 
+    window.dispatchEvent(new CustomEvent('timerSettingsChanged', {
+      detail: newSettings
     }));
-    
+
     onClose();
   };
 
@@ -200,9 +200,9 @@ export function TimerSettings({ settings, onSettingsChange, onClose }: TimerSett
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancel
           </Button>
-          <Button 
-            variant="timer" 
-            onClick={handleSave} 
+          <Button
+            variant="timer"
+            onClick={handleSave}
             className="flex-1"
             disabled={updateSettings.isPending}
           >

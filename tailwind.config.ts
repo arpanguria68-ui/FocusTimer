@@ -1,5 +1,7 @@
 import type { Config } from "tailwindcss";
 
+import animate from "tailwindcss-animate";
+
 export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
@@ -22,13 +24,14 @@ export default {
           secondary: "hsl(var(--background-secondary))",
         },
         foreground: "hsl(var(--foreground))",
+        // Glassmorphism Design System Colors
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "#8B5CF6", // User design primary
+          foreground: "white",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "#06B6D4",
+          foreground: "white",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -65,6 +68,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "dark-bg": "#0B0D11",
+        "card-dark": "#161920",
+      },
+      fontFamily: {
+        sans: ["Outfit", "sans-serif"],
+        mono: ["JetBrains+Mono", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -89,11 +98,11 @@ export default {
           },
         },
       },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-      },
+    },
+    animation: {
+      "accordion-down": "accordion-down 0.2s ease-out",
+      "accordion-up": "accordion-up 0.2s ease-out",
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 } satisfies Config;

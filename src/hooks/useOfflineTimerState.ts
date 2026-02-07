@@ -1,32 +1,67 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from './useAuth'
-import { useCreateSession, useCompleteSession } from './useSupabaseQueries'
+import { useCreateSession, useCompleteSession } from './useConvexQueries'
+import { handleError } from '@/lib/errorHandler'
+
+// @ts-ignore
+declare const chrome: any;
 
 export interface TimerState {
-  currentTime: number
+  currentTime: number // Seconds remaining (derived from endTime)
   isRunning: boolean
   sessionType: 'focus' | 'short_break' | 'long_break'
   currentSession: number
   totalSessions: number
   currentSessionId: string | null
   lastUpdated: number
+  taskId: string | null
+  category: 'signal' | 'noise' | null
+  endTime: number | null // Timestamp when timer ends
 }
 
 const DEFAULT_TIMER_STATE: TimerState = {
-  currentTime: 25 * 60, // 25 minutes in seconds
+  currentTime: 25 * 60,
   isRunning: false,
   sessionType: 'focus',
   currentSession: 1,
   totalSessions: 0,
   currentSessionId: null,
-  lastUpdated: Date.now()
+  lastUpdated: Date.now(),
+  taskId: null,
+  category: null,
+  endTime: null
 }
 
+// Helper to get session duration from storage
+const getSessionDurationFromStorage = (sessionType: TimerState['sessionType']) => {
+  const savedSettings = localStorage.getItem('timer_settings');
+  let settings = {
+    focusTime: 25,
+    breakTime: 5,
+    longBreakTime: 15,
+    sessionsUntilLongBreak: 4
+  };
+
+  if (savedSettings) {
+    try {
+      settings = JSON.parse(savedSettings);
+    } catch (error) {
+      console.error('Failed to parse timer settings:', error);
+    }
+  }
+
+  switch (sessionType) {
+    case 'focus': return settings.focusTime * 60;
+    case 'short_break': return settings.breakTime * 60;
+    case 'long_break': return settings.longBreakTime * 60;
+    default: return 25 * 60;
+  }
+};
+
 /**
- * Offline-first timer state management
- * - Timer settings stored in localStorage
- * - Session tracking synced to database
- * - Handles offline/online scenarios
+ * Offline-first timer state management with Background Sync
+ * - Uses Timestamp (endTime) to track progress across reloads/background
+ * - Syncs with chrome.runtime for background alarms
  */
 export function useOfflineTimerState() {
   const { user } = useAuth()
@@ -39,13 +74,25 @@ export function useOfflineTimerState() {
     if (saved) {
       try {
         const parsedState = { ...DEFAULT_TIMER_STATE, ...JSON.parse(saved) };
-        console.log('Loaded timer state from localStorage:', parsedState);
+
+        // Recalculate currentTime if running
+        if (parsedState.isRunning && parsedState.endTime) {
+          const now = Date.now();
+          const remaining = Math.max(0, Math.floor((parsedState.endTime - now) / 1000));
+
+          // If time passed while closed
+          if (remaining === 0) {
+            // Timer finished while away
+            return { ...parsedState, currentTime: 0, isRunning: false };
+          }
+          return { ...parsedState, currentTime: remaining };
+        }
+
         return parsedState;
       } catch (error) {
         console.error('Failed to parse timer state:', error);
       }
     }
-    console.log('Using default timer state:', DEFAULT_TIMER_STATE);
     return DEFAULT_TIMER_STATE;
   });
 
@@ -54,107 +101,141 @@ export function useOfflineTimerState() {
     localStorage.setItem('focus-timer-state', JSON.stringify(timerState));
   }, [timerState]);
 
-  // Get duration based on session type from localStorage settings
-  const getSessionDuration = useCallback((sessionType: TimerState['sessionType']) => {
-    const savedSettings = localStorage.getItem('timer_settings');
-    let settings = {
-      focusTime: 25,
-      breakTime: 5,
-      longBreakTime: 15,
-      sessionsUntilLongBreak: 4
-    };
-
-    if (savedSettings) {
+  // Sync with Chrome Background Script
+  const syncWithBackground = useCallback((action: 'START' | 'STOP', duration?: number, metadata?: any) => {
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
       try {
-        settings = JSON.parse(savedSettings);
-      } catch (error) {
-        console.error('Failed to parse timer settings:', error);
+        if (action === 'START' && duration) {
+          // @ts-ignore
+          chrome.runtime.sendMessage({ type: 'START_TIMER', duration, metadata });
+        } else {
+          // @ts-ignore
+          chrome.runtime.sendMessage({ type: 'STOP_TIMER' });
+        }
+      } catch (e) {
+        console.warn("Background sync failed (context invalid or not extension):", e);
       }
     }
+  }, []);
 
-    switch (sessionType) {
-      case 'focus': return settings.focusTime * 60
-      case 'short_break': return settings.breakTime * 60
-      case 'long_break': return settings.longBreakTime * 60
-    }
-  }, [])
 
-  // Start timer with database session creation (if online)
-  const startTimer = useCallback(async () => {
+  // Get duration based on session type
+  const getSessionDuration = useCallback((sessionType: TimerState['sessionType']) => {
+    return getSessionDurationFromStorage(sessionType);
+  }, []);
+
+  // Start timer
+  const startTimer = useCallback(async (taskId?: string, category?: 'signal' | 'noise') => {
     try {
-      let sessionId = null;
-      
-      // Try to create session in database if user is logged in
-      if (user) {
+      const durationSeconds = timerState.currentTime > 0
+        ? timerState.currentTime // Resume
+        : getSessionDuration(timerState.sessionType); // Start new
+
+      const endTime = Date.now() + (durationSeconds * 1000);
+      let sessionId = timerState.currentSessionId;
+
+      // Try to create session in database if user is logged in AND it's a new session (not resume)
+      if (user && !timerState.isRunning && !sessionId) {
         const sessionData = await createSession.mutateAsync({
           user_id: user.id,
           session_type: timerState.sessionType,
-          duration_minutes: Math.floor(timerState.currentTime / 60),
-          completed: false
+          duration_minutes: Math.floor(durationSeconds / 60),
+          task_id: taskId || null,
         });
-        sessionId = sessionData.id;
+        sessionId = sessionData;
       }
+
+      // Notify Background Script
+      syncWithBackground('START', durationSeconds, {
+        sessionType: timerState.sessionType,
+        sessionCount: timerState.currentSession,
+        taskId: taskId || timerState.taskId,
+        category: category || timerState.category,
+        taskTitle: null // We don't have title here easily, relying on taskId
+      });
 
       setTimerState(prev => ({
         ...prev,
         isRunning: true,
+        currentTime: durationSeconds,
+        endTime: endTime,
         currentSessionId: sessionId,
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
+        taskId: taskId || prev.taskId,
+        category: category || prev.category
       }));
+
     } catch (error) {
-      console.error('Failed to create session:', error);
-      // Still allow local timer to start
+      handleError(error, { title: "Failed to start session", context: "startTimer" });
+      // Fallback local start
+      const durationSeconds = timerState.currentTime > 0 ? timerState.currentTime : getSessionDuration(timerState.sessionType);
+      const endTime = Date.now() + (durationSeconds * 1000);
+
+      syncWithBackground('START', durationSeconds, {
+        sessionType: timerState.sessionType,
+        sessionCount: timerState.currentSession,
+        taskId: taskId || timerState.taskId,
+        category: category || timerState.category,
+        taskTitle: null
+      });
+
       setTimerState(prev => ({
         ...prev,
         isRunning: true,
-        lastUpdated: Date.now()
+        currentTime: durationSeconds,
+        endTime: endTime,
+        lastUpdated: Date.now(),
+        taskId: taskId || prev.taskId,
+        category: category || prev.category
       }));
     }
-  }, [user, timerState.sessionType, timerState.currentTime, createSession]);
+  }, [user, timerState, createSession, getSessionDuration, syncWithBackground]);
 
   // Pause timer
   const pauseTimer = useCallback(() => {
+    syncWithBackground('STOP');
     setTimerState(prev => ({
       ...prev,
       isRunning: false,
+      endTime: null, // Clear end time on pause
       lastUpdated: Date.now()
     }));
-  }, []);
+  }, [syncWithBackground]);
 
-  // Complete session with database update (if online)
+  // Complete session
   const completeCurrentSession = useCallback(async () => {
+    // 1. Sync to DB
+    if (user && timerState.currentSessionId) {
+      completeSession.mutateAsync(timerState.currentSessionId)
+        .catch(err => handleError(err, { title: "Failed to save session", context: "completeSession", showToast: false }));
+    }
+
+    // 2. Stop Background Alarm
+    syncWithBackground('STOP');
+
+    // 3. Update Local State
     try {
-      // Try to complete session in database if user is logged in and session exists
-      if (user && timerState.currentSessionId) {
-        await completeSession.mutateAsync(timerState.currentSessionId);
-      }
-      
-      // Get settings for next session
       const savedSettings = localStorage.getItem('timer_settings');
       let settings = { sessionsUntilLongBreak: 4 };
       if (savedSettings) {
-        try {
-          settings = JSON.parse(savedSettings);
-        } catch (error) {
-          console.error('Failed to parse timer settings:', error);
-        }
+        try { settings = JSON.parse(savedSettings); } catch { }
       }
-      
-      // Determine next session type
+
       const isLongBreakTime = timerState.currentSession % settings.sessionsUntilLongBreak === 0;
-      
       let nextSessionType: TimerState['sessionType'];
+
       if (timerState.sessionType === 'focus') {
         nextSessionType = isLongBreakTime ? 'long_break' : 'short_break';
       } else {
         nextSessionType = 'focus';
       }
 
-      const nextDuration = getSessionDuration(nextSessionType);
+      const nextDuration = getSessionDurationFromStorage(nextSessionType);
 
       setTimerState(prev => ({
         ...prev,
         currentTime: nextDuration,
+        endTime: null,
         isRunning: false,
         sessionType: nextSessionType,
         currentSession: timerState.sessionType === 'focus' ? prev.currentSession + 1 : prev.currentSession,
@@ -163,77 +244,83 @@ export function useOfflineTimerState() {
         lastUpdated: Date.now()
       }));
     } catch (error) {
-      console.error('Failed to complete session:', error);
+      handleError(error, { title: "Timer Error", context: "completeCurrentSession" });
     }
-  }, [user, timerState, completeSession, getSessionDuration]);
+  }, [user, timerState, completeSession, syncWithBackground]);
 
   // Reset timer
   const resetTimer = useCallback(() => {
+    syncWithBackground('STOP');
     const duration = getSessionDuration(timerState.sessionType);
     setTimerState(prev => ({
       ...prev,
       currentTime: duration,
+      endTime: null,
       isRunning: false,
       currentSessionId: null,
       lastUpdated: Date.now()
     }));
-  }, [timerState.sessionType, getSessionDuration]);
+  }, [timerState.sessionType, getSessionDuration, syncWithBackground]);
 
   // Switch session type
   const switchSessionType = useCallback((newType: TimerState['sessionType']) => {
+    syncWithBackground('STOP');
     const duration = getSessionDuration(newType);
     setTimerState(prev => ({
       ...prev,
       sessionType: newType,
       currentTime: duration,
+      endTime: null,
       isRunning: false,
       currentSessionId: null,
       lastUpdated: Date.now()
     }));
-  }, [getSessionDuration]);
+  }, [getSessionDuration, syncWithBackground]);
 
-  // Timer tick effect
+  // Timer Tick Effect (Timestamp-based)
   useEffect(() => {
-    if (!timerState.isRunning) return;
+    if (!timerState.isRunning || !timerState.endTime) return;
 
     const interval = setInterval(() => {
-      setTimerState(prev => {
-        // Simple countdown - subtract 1 second
-        const newTime = Math.max(0, prev.currentTime - 1);
+      const now = Date.now();
+      const remaining = Math.ceil((timerState.endTime! - now) / 1000);
+      const newTime = Math.max(0, remaining);
 
-        console.log('Timer tick:', { 
-          prevTime: prev.currentTime, 
-          newTime, 
-          isRunning: prev.isRunning 
-        });
-
-        // Auto-complete session when time reaches 0 or gets stuck at 1
-        if ((newTime === 0 && prev.currentTime > 0) || (newTime === 1 && prev.currentTime === 1)) {
-          console.log('Timer completed, calling completeCurrentSession');
-          setTimeout(() => completeCurrentSession(), 0); // Use setTimeout to avoid state update conflicts
-          return {
-            ...prev,
-            currentTime: 0,
-            isRunning: false,
-            lastUpdated: Date.now()
-          };
-        }
-
-        return {
+      // Only update state if time has changed (prevents excessive re-renders)
+      if (newTime !== timerState.currentTime) {
+        setTimerState(prev => ({
           ...prev,
           currentTime: newTime,
-          lastUpdated: Date.now()
-        };
-      });
+          lastUpdated: now
+        }));
+      }
+
+      if (newTime === 0) {
+        completeCurrentSession();
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timerState.isRunning, completeCurrentSession]);
+  }, [timerState.isRunning, timerState.endTime, completeCurrentSession, timerState.currentTime]);
 
-  // Listen for settings changes and update timer duration if not running
+  // Listen for storage changes from other windows/tabs (Dashboard <-> Popup Sync)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'focus-timer-state' && e.newValue) {
+        const newState = JSON.parse(e.newValue);
+        // Only update if the other window has a newer update
+        if (newState.lastUpdated > timerState.lastUpdated) {
+          setTimerState(newState);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [timerState.lastUpdated]);
+
+  // Settings listener
   useEffect(() => {
     const handleSettingsChange = () => {
-      // Only update timer duration if timer is not currently running
       if (!timerState.isRunning) {
         const newDuration = getSessionDuration(timerState.sessionType);
         setTimerState(prev => ({
@@ -243,34 +330,23 @@ export function useOfflineTimerState() {
         }));
       }
     };
-
     window.addEventListener('timerSettingsChanged', handleSettingsChange);
-    
-    return () => {
-      window.removeEventListener('timerSettingsChanged', handleSettingsChange);
-    };
+    return () => window.removeEventListener('timerSettingsChanged', handleSettingsChange);
   }, [timerState.isRunning, timerState.sessionType, getSessionDuration]);
 
   return {
-    // State
     ...timerState,
-    
-    // Actions
     startTimer,
     pauseTimer,
     resetTimer,
     switchSessionType,
     completeCurrentSession,
-    
-    // Computed values
     progress: (() => {
       const totalDuration = getSessionDuration(timerState.sessionType);
-      return totalDuration > 0 
+      return totalDuration > 0
         ? ((totalDuration - timerState.currentTime) / totalDuration) * 100
         : 0;
     })(),
-    
-    // Status
     isLoading: createSession.isPending || completeSession.isPending
   };
 }
