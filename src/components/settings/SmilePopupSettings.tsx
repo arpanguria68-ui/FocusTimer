@@ -166,7 +166,11 @@ export function SmilePopupSettings({ smilePopupSettings, updateSmilePopupSetting
                                 const left = Math.round((screen.width - width) / 2);
                                 const top = Math.round((screen.height - height) / 2);
 
-                                if (typeof chrome !== 'undefined' && chrome.windows) {
+                                // Check if we're in extension context
+                                const isExtension = typeof chrome !== 'undefined' && chrome.windows;
+                                
+                                if (isExtension) {
+                                    // Chrome Extension: Use chrome.windows API
                                     const url = chrome.runtime.getURL('smile-popup.html?sessionType=focus&sessionCount=1');
                                     chrome.windows.create({
                                         url,
@@ -184,7 +188,18 @@ export function SmilePopupSettings({ smilePopupSettings, updateSmilePopupSetting
                                         }
                                     });
                                 } else {
-                                    toast.error("Windows API not accessible in this environment");
+                                    // Web App: Use standard window.open
+                                    const url = `${window.location.origin}/smile-popup.html?sessionType=focus&sessionCount=1`;
+                                    const features = `width=${width},height=${height},left=${left},top=${top},popup=yes`;
+                                    const popupWindow = window.open(url, 'FocusTimerSmilePopup', features);
+                                    
+                                    if (popupWindow) {
+                                        toast.success("External popup window opened!");
+                                        // Focus the popup
+                                        popupWindow.focus();
+                                    } else {
+                                        toast.error("Popup blocked! Please allow popups for this site.");
+                                    }
                                 }
                             }}
                         >

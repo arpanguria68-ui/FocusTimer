@@ -3,12 +3,19 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useEffect } from "react";
 
-// Maintain Supabase-like interface for backward compatibility
+/**
+ * Simple Auth Hook
+ * 
+ * No complex token syncing. Just standard Clerk auth that works
+ * independently in web and extension contexts.
+ * 
+ * Both contexts authenticate separately but sync data through Convex.
+ */
 export const useAuth = () => {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
-  const { signOut, openSignIn, openSignUp } = useClerk();
+  const { signOut: clerkSignOut, openSignIn, openSignUp } = useClerk();
 
-  // Sync user to Convex DB
+  // Sync user to Convex DB (runs in both web and extension)
   const ensureUser = useMutation(api.users.ensureUser);
 
   useEffect(() => {
@@ -18,11 +25,13 @@ export const useAuth = () => {
         email: clerkUser.primaryEmailAddress?.emailAddress || "",
         full_name: clerkUser.fullName || clerkUser.firstName || "",
         avatar_url: clerkUser.imageUrl,
+      }).catch((err) => {
+        console.error('[useAuth] Failed to sync user to Convex:', err);
       });
     }
   }, [isSignedIn, clerkUser, ensureUser]);
 
-  // Adapter to match old User interface partially
+  // Simple user object
   const user = isSignedIn && clerkUser ? {
     id: clerkUser.id,
     email: clerkUser.primaryEmailAddress?.emailAddress,
@@ -32,27 +41,23 @@ export const useAuth = () => {
     }
   } : null;
 
+  // Simple sign out - no complex clearing
+  const signOut = async () => {
+    await clerkSignOut(() => {
+      window.location.reload();
+    });
+  };
+
   return {
     user,
-    session: isSignedIn ? { user } : null, // Mock session object
+    session: isSignedIn ? { user } : null,
     loading: !isLoaded,
     isSignedIn,
-
-    // Auth Methods
-    // Auth Methods
     signIn: async () => openSignIn(),
     signUp: async () => openSignUp(),
-    signOut: async () => signOut(() => {
-      // Reload to clear state/cache, safer than redirecting to a specific path in extension
-      window.location.reload();
-    }),
-
-    // Legacy methods no longer needed but kept for TS compatibility if strictly typed
-    resetPassword: async () => { console.warn("Use Clerk UI for password reset"); return { success: true, message: "Redirecting..." }; },
-    updateProfile: async () => { console.warn("Update profile via Clerk UI"); }
+    signOut,
   };
 };
 
-// Deprecated: Just alias to useAuth
 export const useAuthState = useAuth;
-export const AuthContext = null; // No longer using context directly, relying on Clerk
+export const AuthContext = null;
