@@ -7,6 +7,7 @@ import { HashRouter, BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { DataSyncProvider } from "@/components/DataSyncProvider";
 import { Loader2 } from "lucide-react";
 
 // Lazy load components
@@ -43,12 +44,13 @@ const App = () => {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ConvexClientProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Router>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
+          <DataSyncProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Router>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
                   {isExtension ? (
                     // Extension Routes
                     <>
@@ -70,6 +72,7 @@ const App = () => {
               </Suspense>
             </Router>
           </TooltipProvider>
+          </DataSyncProvider>
         </ConvexClientProvider>
       </QueryClientProvider>
     </ErrorBoundary>

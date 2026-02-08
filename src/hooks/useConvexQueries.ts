@@ -188,6 +188,11 @@ export const useDeletePlaylist = () => {
   return { mutateAsync: (id: any) => remove({ id }), isPending: false };
 };
 
+export const useUpdatePlaylist = () => {
+  const update = useMutation(api.playlists.updatePlaylist);
+  return { mutateAsync: update, isPending: false };
+};
+
 export const useAddToPlaylist = () => {
   const add = useMutation(api.playlists.addQuoteToPlaylist);
   return { mutateAsync: (data: { playlistId: any, quoteId: string }) => add({ playlist_id: data.playlistId, quote_id: data.quoteId }), isPending: false };

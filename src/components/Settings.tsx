@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Save } from 'lucide-react';
+import { Save, Wrench } from 'lucide-react';
 import { GeminiAISettings } from './GeminiAISettings';
 // import { EmailManagement } from './EmailManagement';
 import { TimerSettings } from './settings/TimerSettings';
 import { NotificationSettings } from './settings/NotificationSettings';
 import { SmilePopupSettings } from './settings/SmilePopupSettings';
 import { PrivacySettings } from './settings/PrivacySettings';
+import { DataRepairSettings } from './settings/DataRepairSettings';
 
 import { useSmilePopupSettings, useAppSettings } from '@/hooks/useChromeStorage';
 import { useToast } from '@/hooks/use-toast';
@@ -168,6 +169,12 @@ export function Settings() {
             >
               Privacy
             </TabsTrigger>
+            <TabsTrigger
+              value="advanced"
+              className="rounded-full px-6 py-2.5 data-[state=active]:bg-[#2a2a40] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+            >
+              Advanced
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -206,6 +213,11 @@ export function Settings() {
             {/* Privacy Settings */}
             <TabsContent value="privacy" className="space-y-6 mt-0">
               <PrivacySettings appSettings={appSettings} updateAppSetting={updateAppSetting} />
+            </TabsContent>
+
+            {/* Advanced Settings */}
+            <TabsContent value="advanced" className="space-y-6 mt-0">
+              <DataRepairSettings />
             </TabsContent>
           </div>
         </div>

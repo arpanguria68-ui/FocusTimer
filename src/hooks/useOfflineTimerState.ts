@@ -140,7 +140,7 @@ export function useOfflineTimerState() {
           user_id: user.id,
           session_type: timerState.sessionType,
           duration_minutes: Math.floor(durationSeconds / 60),
-          task_id: taskId || null,
+          ...(taskId && { task_id: taskId }),
         });
         sessionId = sessionData;
       }

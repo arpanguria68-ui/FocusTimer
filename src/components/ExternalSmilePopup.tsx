@@ -76,8 +76,27 @@ export function ExternalSmilePopup({
   onSkipBreak
 }: ExternalSmilePopupProps) {
 
-  const { getNextQuote, isLoading: quotesLoading, allQuotes, playlists, activePlaylistId } = useQuotesState();
+  const { getNextQuote, isLoading: quotesLoading, allQuotes, playlists, activePlaylistId, toggleActivePlaylist } = useQuotesState();
   const { user, session } = useAuth ? useAuth() : { user: null, session: null }; // Safe access just in case
+
+  // Auto-activate first playlist if none is active
+  useEffect(() => {
+    console.log('[ExternalSmilePopup] Auto-activation check:', {
+      hasPlaylists: !!playlists,
+      playlistCount: playlists?.length,
+      activePlaylistId,
+      firstPlaylist: playlists?.[0]?.name
+    });
+
+    if (playlists && playlists.length > 0 && !activePlaylistId) {
+      console.log('[ExternalSmilePopup] Auto-activating first playlist:', playlists[0].name, 'ID:', playlists[0].id);
+      toggleActivePlaylist(playlists[0].id);
+    } else if (playlists && playlists.length > 0 && activePlaylistId) {
+      console.log('[ExternalSmilePopup] Playlist already active:', activePlaylistId);
+    } else if (!playlists || playlists.length === 0) {
+      console.log('[ExternalSmilePopup] No playlists available yet');
+    }
+  }, [playlists, activePlaylistId, toggleActivePlaylist]);
 
   useEffect(() => {
     console.log('[ExternalSmilePopup Debug] Mount State:', {
@@ -168,59 +187,84 @@ export function ExternalSmilePopup({
       hasLoaded.current = true;
       setIsLoading(true);
 
-      // Polling mechanism to wait for quotes
-      let attempts = 0;
-      const maxAttempts = 20; // 10 seconds total (20 * 500ms)
+      console.log('[ExternalSmilePopup] Starting quote load. ActivePlaylistId:', activePlaylistId);
 
-      const pollForQuotes = () => {
-        attempts++;
-        console.log(`[ExternalSmilePopup] Polling attempt ${attempts}/${maxAttempts}.`);
+      // Wait a bit for data to be ready
+      setTimeout(() => {
+        // Polling mechanism to wait for quotes
+        let attempts = 0;
+        const maxAttempts = 30; // 15 seconds total (30 * 500ms)
 
-        try {
-          // Try to get a quote - method now prioritized cache per our hook changes
-          const result = getNextQuote();
-          console.log('[ExternalSmilePopup] result:', result);
+        const pollForQuotes = () => {
+          attempts++;
+          console.log(`[ExternalSmilePopup] Polling attempt ${attempts}/${maxAttempts}. ActivePlaylistId:`, activePlaylistId);
 
-          if (result && result.quote) {
-            setQuote({
-              id: result.quote.id,
-              content: result.quote.content,
-              author: result.quote.author || 'Unknown',
-              source: result.source,
-              playlistName: result.playlistName
-            });
-            setIsLoading(false);
-          } else {
-            // If we're still polling, wait more unless max attempts reached
-            if (attempts >= maxAttempts) {
-              console.warn('[ExternalSmilePopup] Timed out waiting for quote');
+          try {
+            // Try to get a quote - method now prioritized cache per our hook changes
+            const result = getNextQuote();
+            console.log('[ExternalSmilePopup] getNextQuote result:', result);
+
+            if (result && result.quote) {
+              console.log('[ExternalSmilePopup] Successfully got quote:', result.quote.content.substring(0, 50));
               setQuote({
-                id: 'fallback',
-                content: "The only way to do great work is to love what you do.",
-                author: "Steve Jobs",
-                source: 'random'
+                id: result.quote.id,
+                content: result.quote.content,
+                author: result.quote.author || 'Unknown',
+                source: result.source,
+                playlistName: result.playlistName
               });
               setIsLoading(false);
             } else {
-              setTimeout(pollForQuotes, 500);
+              // If we're still polling, wait more unless max attempts reached
+              if (attempts >= maxAttempts) {
+                console.warn('[ExternalSmilePopup] Timed out waiting for quote after', maxAttempts, 'attempts');
+                setQuote({
+                  id: 'fallback',
+                  content: "The only way to do great work is to love what you do.",
+                  author: "Steve Jobs",
+                  source: 'random'
+                });
+                setIsLoading(false);
+              } else {
+                setTimeout(pollForQuotes, 500);
+              }
             }
+          } catch (error) {
+            console.error('[ExternalSmilePopup] Error getting quote:', error);
+            if (attempts >= maxAttempts) setIsLoading(false);
+            else setTimeout(pollForQuotes, 500);
           }
-        } catch (error) {
-          console.error('[ExternalSmilePopup] Error getting quote:', error);
-          if (attempts >= maxAttempts) setIsLoading(false);
-          else setTimeout(pollForQuotes, 500);
-        }
-      };
+        };
 
-
-      // Start polling
-      pollForQuotes();
+        // Start polling
+        pollForQuotes();
+      }, 300); // Wait 300ms for data to be ready
 
       // Clean up if component unmounts (though for popup this is rare until close)
       return () => { };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showQuotes]); // Only depend on showQuotes, not getNextQuote (which changes on every call)
+  }, [showQuotes, activePlaylistId, getNextQuote]);
+
+  // REACTIVE FIX: Immediately try to load quote when dependencies change (user login, cache load, etc.)
+  // ALSO: If we are currently showing the fallback quote, try again when data updates!
+  useEffect(() => {
+    const isFallback = quote?.id === 'fallback';
+
+    if ((isLoading || isFallback) && showQuotes) {
+      const result = getNextQuote();
+      if (result && result.quote) {
+        console.log('[ExternalSmilePopup] Reactive load success (overwriting fallback/loading):', result.quote.id);
+        setQuote({
+          id: result.quote.id,
+          content: result.quote.content,
+          author: result.quote.author || 'Unknown',
+          source: result.source,
+          playlistName: result.playlistName
+        });
+        setIsLoading(false);
+      }
+    }
+  }, [isLoading, quote?.id, showQuotes, getNextQuote, allQuotes.length, activePlaylistId, user]);
 
   // Auto close timer
   useEffect(() => {
