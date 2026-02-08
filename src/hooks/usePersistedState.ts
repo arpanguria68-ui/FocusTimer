@@ -122,27 +122,24 @@ export function usePersistedState<T>(
     }
   }, [userKey, storageType, defaultValue]);
 
-  // Load from Chrome storage on mount (async) - AND when userKey changes
+  // Listen for storage changes from other tabs
   useEffect(() => {
+    if (typeof window === 'undefined') return
 
-    // Listen for storage changes from other tabs
-    useEffect(() => {
-      if (typeof window === 'undefined') return
-
-      const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === userKey && e.newValue) {
-          try {
-            const newState = JSON.parse(e.newValue)
-            setState(newState)
-          } catch (error) {
-            console.warn(`Failed to sync state from storage change:`, error)
-          }
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === userKey && e.newValue) {
+        try {
+          const newState = JSON.parse(e.newValue)
+          setState(newState)
+        } catch (error) {
+          console.warn(`Failed to sync state from storage change:`, error)
         }
       }
+    }
 
-      window.addEventListener('storage', handleStorageChange)
-      return () => window.removeEventListener('storage', handleStorageChange)
-    }, [userKey])
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [userKey])
 
-    return [state, setPersistedState] as const
-  }
+  return [state, setPersistedState] as const
+}
