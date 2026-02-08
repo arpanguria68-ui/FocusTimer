@@ -28,7 +28,7 @@ export function usePersistedState<T>(
     try {
       // Try to load from storage first
       let stored: string | null = null
-      
+
       if (storageType === 'chrome' && typeof chrome !== 'undefined' && chrome.storage) {
         // For Chrome extension, we'll handle this async
         return defaultValue
@@ -49,7 +49,7 @@ export function usePersistedState<T>(
   const persistState = useCallback((newState: T) => {
     try {
       const serialized = JSON.stringify(newState)
-      
+
       if (storageType === 'chrome' && typeof chrome !== 'undefined' && chrome.storage) {
         chrome.storage.local.set({ [userKey]: serialized })
       } else if (storageType === 'localStorage' && typeof window !== 'undefined') {
@@ -65,13 +65,13 @@ export function usePersistedState<T>(
   // Enhanced setState that persists automatically
   const setPersistedState = useCallback((newState: T | ((prev: T) => T)) => {
     setState(prevState => {
-      const nextState = typeof newState === 'function' 
+      const nextState = typeof newState === 'function'
         ? (newState as (prev: T) => T)(prevState)
         : newState
-      
+
       // Persist immediately
       persistState(nextState)
-      
+
       return nextState
     })
   }, [persistState])
@@ -92,37 +92,57 @@ export function usePersistedState<T>(
     }
   }, [userKey, storageType, key])
 
-  // Sync to database periodically if enabled
+  // Reload state when userKey changes (e.g. login/logout)
   useEffect(() => {
-    if (!syncToDatabase || !user) return
+    try {
+      let stored: string | null = null;
+      if (storageType === 'localStorage' && typeof window !== 'undefined') {
+        stored = localStorage.getItem(userKey);
+      } else if (storageType === 'sessionStorage' && typeof window !== 'undefined') {
+        stored = sessionStorage.getItem(userKey);
+      } else if (storageType === 'chrome' && typeof chrome !== 'undefined' && chrome.storage) {
+        // Chrome storage handled by separate effect
+        return;
+      }
 
-    const interval = setInterval(() => {
-      // This would sync to Supabase - implement based on data type
-      console.log(`Syncing ${key} to database for user ${user.id}`)
-      // TODO: Implement database sync based on data type
-    }, syncInterval)
+      if (stored) {
+        console.log(`[usePersistedState] Reloading state for key changed: ${userKey}`);
+        setState(JSON.parse(stored));
+      } else {
+        // If no stored data for this user, potentially reset to default or keep current?
+        // Usually better to iterate, but if switching users, we should probably reset or load defaults.
+        // However, defaultValue might be static.
+        // Let's assume if nothing stored, we keep default.
+        // But we must NOT keep the *previous user's* data.
+        console.log(`[usePersistedState] No stored state for ${userKey}, resetting to default`);
+        setState(defaultValue);
+      }
+    } catch (error) {
+      console.warn(`Failed to reload persisted state for ${userKey}:`, error);
+    }
+  }, [userKey, storageType, defaultValue]);
 
-    return () => clearInterval(interval)
-  }, [syncToDatabase, user, syncInterval, key])
-
-  // Listen for storage changes from other tabs
+  // Load from Chrome storage on mount (async) - AND when userKey changes
   useEffect(() => {
-    if (typeof window === 'undefined') return
 
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === userKey && e.newValue) {
-        try {
-          const newState = JSON.parse(e.newValue)
-          setState(newState)
-        } catch (error) {
-          console.warn(`Failed to sync state from storage change:`, error)
+    // Listen for storage changes from other tabs
+    useEffect(() => {
+      if (typeof window === 'undefined') return
+
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === userKey && e.newValue) {
+          try {
+            const newState = JSON.parse(e.newValue)
+            setState(newState)
+          } catch (error) {
+            console.warn(`Failed to sync state from storage change:`, error)
+          }
         }
       }
-    }
 
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [userKey])
+      window.addEventListener('storage', handleStorageChange)
+      return () => window.removeEventListener('storage', handleStorageChange)
+    }, [userKey])
 
-  return [state, setPersistedState] as const
-}
+    return [state, setPersistedState] as const
+  }
