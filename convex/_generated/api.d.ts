@@ -8,7 +8,9 @@
  * @module
  */
 
+import type * as chats from "../chats.js";
 import type * as favorites from "../favorites.js";
+import type * as lib_procedures from "../lib/procedures.js";
 import type * as playlists from "../playlists.js";
 import type * as quotes from "../quotes.js";
 import type * as sessions from "../sessions.js";
@@ -23,7 +25,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  chats: typeof chats;
   favorites: typeof favorites;
+  "lib/procedures": typeof lib_procedures;
   playlists: typeof playlists;
   quotes: typeof quotes;
   sessions: typeof sessions;

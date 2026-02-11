@@ -24,7 +24,7 @@ export function GlassTimer() {
     } = useOfflineTimerState();
 
     const { activeTasks } = useTaskState();
-    const { user } = useAuth();
+    const { user, getToken } = useAuth();
     const { toast } = useToast();
     const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
     const [showSettings, setShowSettings] = useState(false);
@@ -393,6 +393,27 @@ export function GlassTimer() {
                         onClick={() => openDashboard('/tasks')}
                     >
                         <span className="material-symbols-outlined text-xl">list_alt</span> Tasks
+                    </button>
+                </div>
+
+                {/* Debug Button */}
+                <div className="mt-4 w-full max-w-sm flex justify-center">
+                    <button
+                        onClick={async () => {
+                            try {
+                                console.log("Debug: Fetching convex token...");
+                                const token = await getToken({ template: 'convex' });
+                                console.log("Debug: Token fetched:", token);
+                                if (!token) {
+                                    console.error("Debug: Token is empty!");
+                                }
+                            } catch (e) {
+                                console.error("Debug: Token fetch failed", e);
+                            }
+                        }}
+                        className="px-4 py-2 rounded-xl bg-red-500/20 text-red-300 text-xs font-medium hover:bg-red-500/30 transition-colors"
+                    >
+                        Debug Token
                     </button>
                 </div>
             </main>

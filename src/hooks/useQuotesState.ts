@@ -105,14 +105,14 @@ export function useQuotesState() {
     const customOrder = quotesState.customOrder || [];
     const remote = remoteQuotes || [];
     const cached = quotesState.cachedPlaylistQuotes || [];
-    
+
     // Merge remote favorites if logged in, otherwise use local
     const mergedFavorites = user ? remoteFavorites : (quotesState.favorites || []);
 
     // Use remote quotes if available, otherwise fall back to cached quotes
     // This ensures popup can access quotes even when logged out
     const sourceQuotes = remote.length > 0 ? remote : cached;
-    
+
     console.log('[allQuotes] Data sources:', {
       remoteCount: remote.length,
       cachedCount: cached.length,
@@ -415,7 +415,7 @@ export function useQuotesState() {
     if (user) {
       try {
         console.log('[createPlaylist] Creating in Convex for user:', user.id);
-        const convexId = await createPlaylistMutation.mutateAsync({ user_id: user.id, name, quote_ids: [] });
+        const convexId = await createPlaylistMutation.mutateAsync({ name, quote_ids: [] });
 
         // Convex returns the real ID - use it for activePlaylistId
         const realId = String(convexId);
@@ -476,7 +476,7 @@ export function useQuotesState() {
       try {
         await addToPlaylistMutation.mutateAsync({ playlistId, quoteId });
         console.log('[addToPlaylist] Successfully added to Convex playlist');
-        
+
         // CRITICAL FIX: Also update localStorage immediately
         // This ensures the popup has the latest data without waiting for subscription
         setQuotesState(prev => ({
@@ -487,7 +487,7 @@ export function useQuotesState() {
               : p
           )
         }));
-        
+
         console.log('[addToPlaylist] Updated localStorage playlist');
       } catch (error) {
         console.error("[addToPlaylist] Failed to add to Convex playlist:", error);
@@ -515,7 +515,7 @@ export function useQuotesState() {
       try {
         await removeFromPlaylistMutation.mutateAsync({ playlistId, quoteId });
         console.log('[removeFromPlaylist] Successfully removed from Convex playlist');
-        
+
         // CRITICAL FIX: Also update localStorage immediately
         setQuotesState(prev => ({
           ...prev,
@@ -525,7 +525,7 @@ export function useQuotesState() {
               : p
           )
         }));
-        
+
         console.log('[removeFromPlaylist] Updated localStorage playlist');
       } catch (error) {
         console.error("[removeFromPlaylist] Failed to remove from Convex playlist:", error);
@@ -558,7 +558,7 @@ export function useQuotesState() {
     const remote = remotePlaylists || [];
     const cached = state.playlists || [];
     const playlistsToUse: any[] = remote.length > 0 ? remote : cached;
-    
+
     console.log('[getNextQuote] Playlist sources:', {
       remoteCount: remote.length,
       cachedCount: cached.length,
@@ -663,7 +663,7 @@ export function useQuotesState() {
 
         // Check if they're the same
         const same = quotesToCache.every(q => currentCacheIds.has(q.id)) &&
-                     prev.cachedPlaylistQuotes.every(q => newCacheIds.has(q.id));
+          prev.cachedPlaylistQuotes.every(q => newCacheIds.has(q.id));
 
         if (same) return prev; // No change needed
 
@@ -681,7 +681,7 @@ export function useQuotesState() {
   useEffect(() => {
     if (user && remotePlaylists && remotePlaylists.length > 0) {
       console.log('[useQuotesState] Caching', remotePlaylists.length, 'playlists from Convex for offline access');
-      
+
       // Convert Convex playlists to local Playlist format and cache
       const playlistsToCache: Playlist[] = remotePlaylists.map((p: any) => ({
         id: p._id || p.id,
@@ -693,10 +693,10 @@ export function useQuotesState() {
       setQuotesState(prev => {
         // Deep comparison: check both playlist IDs and quoteIds
         const currentPlaylistMap = new Map(prev.playlists.map(p => [p.id, p]));
-        
+
         // Check if they're the same (same IDs, same quote counts)
         let same = true;
-        
+
         // Check if all cached playlists exist in current
         for (const cached of playlistsToCache) {
           const current = currentPlaylistMap.get(cached.id);
@@ -719,19 +719,19 @@ export function useQuotesState() {
           }
           if (!same) break;
         }
-        
+
         // Also check if current playlists exist in cache
         const cachedIds = new Set(playlistsToCache.map(p => p.id));
         if (same && prev.playlists.some(p => !cachedIds.has(p.id))) {
           same = false;
         }
-        
+
         if (same) {
           console.log('[useQuotesState] Playlists unchanged, skipping cache update');
           return prev;
         }
 
-        console.log('[useQuotesState] Updating playlist cache:', 
+        console.log('[useQuotesState] Updating playlist cache:',
           playlistsToCache.map(p => ({ name: p.name, quoteCount: p.quoteIds.length })));
 
         return {

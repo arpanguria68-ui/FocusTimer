@@ -12,6 +12,9 @@ module.exports = defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Force deduplication of Clerk packages
+      "@clerk/clerk-react": path.resolve(__dirname, "node_modules/@clerk/clerk-react"),
+      "@clerk/shared": path.resolve(__dirname, "node_modules/@clerk/shared"),
     },
   },
   build: {

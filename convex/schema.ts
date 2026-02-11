@@ -80,6 +80,7 @@ export default defineSchema({
         updated_at: v.string(),
         last_message: v.optional(v.string()),
         is_archived: v.optional(v.boolean()),
+        agent_mode: v.optional(v.string()), // 'pareto', 'gtd', 'strategist', 'stoic', 'zen'
     })
         .index("by_user", ["user_id"])
         .index("by_user_updated", ["user_id", "updated_at"]),

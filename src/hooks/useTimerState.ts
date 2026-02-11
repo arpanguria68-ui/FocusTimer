@@ -72,10 +72,8 @@ export function useTimerState() {
     try {
       // Create session in database
       const sessionId = await createSession.mutateAsync({
-        user_id: user.id,
         session_type: timerState.sessionType,
         duration_minutes: Math.floor(timerState.currentTime / 60),
-        completed: false
       })
 
       setTimerState(prev => ({

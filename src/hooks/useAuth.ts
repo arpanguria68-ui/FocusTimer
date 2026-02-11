@@ -1,19 +1,16 @@
-import { useUser, useClerk } from "@clerk/clerk-react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useEffect } from "react";
+import { useUniversalAuthContext } from "@/contexts/UniversalAuthContext";
 
 /**
- * Simple Auth Hook
+ * Universal Auth Hook
  * 
- * No complex token syncing. Just standard Clerk auth that works
- * independently in web and extension contexts.
- * 
- * Both contexts authenticate separately but sync data through Convex.
+ * Consumes the UniversalAuthContext which is populated by
+ * either WebAuthAdapter or ExtensionAuthAdapter.
  */
 export const useAuth = () => {
-  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
-  const { signOut: clerkSignOut, openSignIn, openSignUp } = useClerk();
+  const { user: clerkUser, isLoaded, isSignedIn, signOut: contextSignOut, openSignIn, openSignUp, getToken: contextGetToken } = useUniversalAuthContext();
 
   // Sync user to Convex DB (runs in both web and extension)
   const ensureUser = useMutation(api.users.ensureUser);
@@ -41,11 +38,10 @@ export const useAuth = () => {
     }
   } : null;
 
-  // Simple sign out - no complex clearing
+  // Simple sign out
   const signOut = async () => {
-    await clerkSignOut(() => {
-      window.location.reload();
-    });
+    await contextSignOut();
+    window.location.reload();
   };
 
   return {
@@ -56,8 +52,9 @@ export const useAuth = () => {
     signIn: async () => openSignIn(),
     signUp: async () => openSignUp(),
     signOut,
+    getToken: contextGetToken,
   };
 };
 
 export const useAuthState = useAuth;
-export const AuthContext = null;
+export const AuthContext = null; // Deprecated, kept for compatibility if needed

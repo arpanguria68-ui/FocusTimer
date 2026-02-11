@@ -13,12 +13,12 @@ import { api } from "../../convex/_generated/api";
 
 // Get all quotes (public + user's custom)
 export const useQuotes = (userId?: string) => {
-  return useQuery(api.quotes.getQuotes, userId ? { userId } : "skip");
+  return useQuery(api.quotes.getQuotes, userId ? {} : "skip");
 };
 
 // Get user's playlists from Convex
 export const useUserPlaylists = (userId?: string) => {
-  return useQuery(api.playlists.getPlaylists, userId ? { userId } : "skip");
+  return useQuery(api.playlists.getPlaylists, userId ? {} : "skip");
 };
 
 // Create a new quote
@@ -69,7 +69,7 @@ export const useCreateQuoteAndAddToPlaylist = () => {
     }) => {
       // Step 1: Create quote in Convex
       const quoteId = await createQuote({
-        user_id,
+        // user_id, // REMOVED
         content,
         author,
         category,
@@ -79,7 +79,7 @@ export const useCreateQuoteAndAddToPlaylist = () => {
       // Step 2: If playlist specified, add quote to playlist
       if (playlist_id) {
         await addToPlaylist({
-          playlist_id,
+          playlist_id: playlist_id as any, // Cast to Id<"playlists">
           quote_id: quoteId,
         });
       }

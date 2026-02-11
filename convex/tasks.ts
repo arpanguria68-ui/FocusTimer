@@ -4,19 +4,22 @@ import { v } from "convex/values";
 // Get user tasks
 export const getTasks = query({
     args: {
-        userId: v.string(),
+        // userId: v.string(), // REMOVED
         completed: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return []; // Return empty if not authenticated
+
         let tasksQuery = ctx.db
             .query("tasks")
-            .withIndex("by_user", (q) => q.eq("user_id", args.userId));
+            .withIndex("by_user", (q) => q.eq("user_id", identity.subject));
 
         if (args.completed !== undefined) {
             tasksQuery = ctx.db
                 .query("tasks")
                 .withIndex("by_user_completed", (q) =>
-                    q.eq("user_id", args.userId).eq("completed", args.completed!)
+                    q.eq("user_id", identity.subject).eq("completed", args.completed!)
                 );
         }
 
@@ -32,7 +35,7 @@ export const getTasks = query({
 // Create Task
 export const createTask = mutation({
     args: {
-        user_id: v.string(),
+        // user_id: v.string(), // REMOVED
         title: v.string(),
         description: v.optional(v.string()),
         priority: v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
@@ -40,8 +43,12 @@ export const createTask = mutation({
         category: v.union(v.literal('signal'), v.literal('noise')),
     },
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
         const taskId = await ctx.db.insert("tasks", {
             ...args,
+            user_id: identity.subject, // TRUSTED
             completed: false,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -54,6 +61,16 @@ export const createTask = mutation({
 export const toggleTask = mutation({
     args: { id: v.id("tasks"), completed: v.boolean() },
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const task = await ctx.db.get(args.id);
+        if (!task) throw new Error("Task not found");
+
+        if (task.user_id !== identity.subject) {
+            throw new Error("Unauthorized");
+        }
+
         await ctx.db.patch(args.id, {
             completed: args.completed,
             updated_at: new Date().toISOString(),
@@ -65,6 +82,16 @@ export const toggleTask = mutation({
 export const deleteTask = mutation({
     args: { id: v.id("tasks") },
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const task = await ctx.db.get(args.id);
+        if (!task) throw new Error("Task not found");
+
+        if (task.user_id !== identity.subject) {
+            throw new Error("Unauthorized");
+        }
+
         await ctx.db.delete(args.id);
     },
 });
@@ -80,6 +107,16 @@ export const updateTask = mutation({
         category: v.optional(v.union(v.literal('signal'), v.literal('noise'))),
     },
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const task = await ctx.db.get(args.id);
+        if (!task) throw new Error("Task not found");
+
+        if (task.user_id !== identity.subject) {
+            throw new Error("Unauthorized");
+        }
+
         const { id, ...updates } = args;
         await ctx.db.patch(id, {
             ...updates,

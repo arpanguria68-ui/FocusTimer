@@ -3,11 +3,16 @@ import { v } from "convex/values";
 
 // Get user favorites
 export const getFavorites = query({
-    args: { userId: v.string() },
-    handler: async (ctx, args) => {
+    args: {
+        // userId: v.string() // REMOVED
+    },
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+
         return await ctx.db
             .query("favorites")
-            .withIndex("by_user", (q) => q.eq("user_id", args.userId))
+            .withIndex("by_user", (q) => q.eq("user_id", identity.subject))
             .collect();
     },
 });
@@ -15,14 +20,17 @@ export const getFavorites = query({
 // Toggle Favorite
 export const toggleFavorite = mutation({
     args: {
-        user_id: v.string(),
+        // user_id: v.string(), // REMOVED
         quote_id: v.string(),
     },
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
         const existing = await ctx.db
             .query("favorites")
             .withIndex("by_user_quote", (q) =>
-                q.eq("user_id", args.user_id).eq("quote_id", args.quote_id)
+                q.eq("user_id", identity.subject).eq("quote_id", args.quote_id)
             )
             .first();
 
@@ -31,7 +39,7 @@ export const toggleFavorite = mutation({
             return { action: "removed", id: existing._id };
         } else {
             const id = await ctx.db.insert("favorites", {
-                user_id: args.user_id,
+                user_id: identity.subject, // TRUSTED
                 quote_id: args.quote_id,
                 created_at: new Date().toISOString(),
             });
@@ -43,22 +51,25 @@ export const toggleFavorite = mutation({
 // Sync Favorites (Bulk Add) - For migrating local favorites
 export const syncFavorites = mutation({
     args: {
-        user_id: v.string(),
+        // user_id: v.string(), // REMOVED
         quote_ids: v.array(v.string()),
     },
     handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
         const results = [];
         for (const quoteId of args.quote_ids) {
             const existing = await ctx.db
                 .query("favorites")
                 .withIndex("by_user_quote", (q) =>
-                    q.eq("user_id", args.user_id).eq("quote_id", quoteId)
+                    q.eq("user_id", identity.subject).eq("quote_id", quoteId)
                 )
                 .first();
 
             if (!existing) {
                 const id = await ctx.db.insert("favorites", {
-                    user_id: args.user_id,
+                    user_id: identity.subject, // TRUSTED
                     quote_id: quoteId,
                     created_at: new Date().toISOString(),
                 });

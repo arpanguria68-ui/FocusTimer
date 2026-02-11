@@ -204,10 +204,13 @@ export function useOfflineTimerState() {
 
   // Complete session
   const completeCurrentSession = useCallback(async () => {
+    console.log('completeCurrentSession called. Current Session ID:', timerState.currentSessionId);
     // 1. Sync to DB
     if (user && timerState.currentSessionId) {
-      completeSession.mutateAsync(timerState.currentSessionId)
+      completeSession.mutateAsync({ sessionId: timerState.currentSessionId })
         .catch(err => handleError(err, { title: "Failed to save session", context: "completeSession", showToast: false }));
+    } else {
+      console.warn('Skipping DB sync. User:', !!user, 'SessionID:', timerState.currentSessionId);
     }
 
     // 2. Stop Background Alarm

@@ -7,7 +7,8 @@ import { HashRouter, BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
-import { DataSyncProvider } from "@/components/DataSyncProvider";
+import { DataSyncProvider } from "@/contexts/DataSyncContext";
+import { TaskProvider } from "@/contexts/TaskContext";
 import { Loader2 } from "lucide-react";
 
 // Lazy load components
@@ -44,35 +45,37 @@ const App = () => {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ConvexClientProvider>
-          <DataSyncProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Router>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                  {isExtension ? (
-                    // Extension Routes
-                    <>
-                      <Route path="/" element={<ChromeExtensionMain />} />
-                      <Route path="/dashboard" element={<AuthenticatedDashboard />} />
-                      <Route path="/smile-popup" element={<ExternalSmilePopupPage />} />
-                      <Route path="*" element={<ChromeExtensionMain />} />
-                    </>
-                  ) : (
-                    // Web Routes
-                    <>
-                      <Route path="/" element={<div>Web App Home</div>} />
-                      <Route path="/dashboard" element={<AuthenticatedDashboard />} />
-                      <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
-                      <Route path="*" element={<div>404 - Page Not Found</div>} />
-                    </>
-                  )}
-                </Routes>
-              </Suspense>
-            </Router>
-          </TooltipProvider>
-          </DataSyncProvider>
+          <TaskProvider>
+            <DataSyncProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <Router>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      {isExtension ? (
+                        // Extension Routes
+                        <>
+                          <Route path="/" element={<ChromeExtensionMain />} />
+                          <Route path="/dashboard" element={<AuthenticatedDashboard />} />
+                          <Route path="/smile-popup" element={<ExternalSmilePopupPage />} />
+                          <Route path="*" element={<ChromeExtensionMain />} />
+                        </>
+                      ) : (
+                        // Web Routes
+                        <>
+                          <Route path="/" element={<div>Web App Home</div>} />
+                          <Route path="/dashboard" element={<AuthenticatedDashboard />} />
+                          <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
+                          <Route path="*" element={<div>404 - Page Not Found</div>} />
+                        </>
+                      )}
+                    </Routes>
+                  </Suspense>
+                </Router>
+              </TooltipProvider>
+            </DataSyncProvider>
+          </TaskProvider>
         </ConvexClientProvider>
       </QueryClientProvider>
     </ErrorBoundary>

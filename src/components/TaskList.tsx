@@ -86,11 +86,14 @@ export function TaskList() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8 px-2">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">
+          <h1 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-sm">
             Focus Tasks
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {activeTasks.length} active sessions remaining
+          <p className="text-sm font-medium text-slate-300 mt-1 flex items-center gap-2">
+            <span className="bg-primary/20 text-primary px-2 py-0.5 rounded text-xs font-bold font-mono">
+              {activeTasks.length}
+            </span>
+            <span className="opacity-80">active sessions remaining</span>
           </p>
         </div>
         <div className="w-10 h-10 rounded-full glass flex items-center justify-center overflow-hidden border border-white/10">
@@ -104,53 +107,25 @@ export function TaskList() {
         </div>
       </div>
 
-      {/* Search and Add */}
-      <div className="flex gap-3 mb-6">
+      {/* Add Task Input */}
+      <div className="flex gap-3 mb-6 relative">
         <div className="flex-1 relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <Plus className="w-5 h-5" />
+          </div>
           <input
             type="text"
             className="w-full bg-white/40 dark:bg-white/5 border-none rounded-2xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary transition-all glass placeholder:text-slate-400 text-foreground"
-            placeholder={user ? "Search or add task..." : "Sign in to add tasks"}
-            value={newTask ? newTask : searchQuery}
-            onChange={(e) => {
-              // If user is typing to add a new task (detected by intent or UI toggle? simpler: search works as filter, add button adds current text)
-              // For now, let's keep it simple: input updates 'newTask', if empty usage behaves like search? 
-              // Actually design separates search. Let's separate them.
-              if (newTask) setNewTask(e.target.value);
-              else setSearchQuery(e.target.value);
-            }}
-          // Better UX: Separate inputs or smart mode. 
-          // Design has "Search tasks..." placeholder. And a separate FAB for add. 
-          // Let's implement the input as Search, and maybe a separate Add mode or repurpose input.
-          />
-          <input
-            type="text"
-            className="w-full bg-white/40 dark:bg-white/5 border-none rounded-2xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary transition-all glass placeholder:text-slate-400 text-foreground absolute inset-0"
-            placeholder="Search tasks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ display: newTask ? 'none' : 'block' }}
-          />
-          <input
-            type="text"
-            className="w-full bg-white/40 dark:bg-white/5 border-none rounded-2xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary transition-all glass placeholder:text-slate-400 text-foreground absolute inset-0"
-            placeholder="Add new task..."
+            placeholder="Add a new focus task..."
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addTask()}
-            style={{ display: newTask ? 'block' : 'none' }}
           />
-
         </div>
         <button
-          onClick={() => {
-            if (newTask) addTask();
-            else setNewTask(' '); // Activate add mode hack, or toggle?
-            // Let's just make the button toggle 'Add Mode' if empty, or Add if has text.
-            if (!newTask && !searchQuery) setNewTask(' '); // Start typing
-          }}
-          className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-transform"
+          onClick={addTask}
+          disabled={!newTask.trim() || isLoading}
+          className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSyncing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Plus className="w-6 h-6" />}
         </button>

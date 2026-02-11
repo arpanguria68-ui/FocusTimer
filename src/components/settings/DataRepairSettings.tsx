@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useDataSync } from '@/components/DataSyncProvider';
+import { useDataSync } from '@/contexts/DataSyncContext';
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, CheckCircle, AlertTriangle, Database } from 'lucide-react';
 
@@ -15,7 +15,7 @@ export function DataRepairSettings() {
   const handleValidate = () => {
     const result = validateDataIntegrity();
     setValidationResult(result);
-    
+
     if (result.valid) {
       toast({
         title: "Data Integrity Check",
@@ -63,12 +63,12 @@ export function DataRepairSettings() {
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
-      
+
       toast({
         title: "Cache Cleared",
         description: "Local cache has been cleared. Data will be re-synced from the cloud.",
       });
-      
+
       // Reload to re-fetch from cloud
       setTimeout(() => window.location.reload(), 1500);
     }
@@ -92,22 +92,22 @@ export function DataRepairSettings() {
               onClick={handleValidate}
               variant="outline"
               className="border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white"
-              disabled={isSyncing()}
+              disabled={isSyncing}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Check Data Integrity
             </Button>
-            
+
             <Button
               onClick={handleRepair}
               variant="outline"
               className="border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white"
-              disabled={isRepairing || isSyncing()}
+              disabled={isSyncing}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isRepairing ? 'animate-spin' : ''}`} />
               {isRepairing ? 'Repairing...' : 'Repair Data'}
             </Button>
-            
+
             <Button
               onClick={handleClearCache}
               variant="outline"
